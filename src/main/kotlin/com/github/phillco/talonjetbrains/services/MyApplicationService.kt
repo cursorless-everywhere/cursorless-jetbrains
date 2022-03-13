@@ -1,6 +1,6 @@
-package org.jetbrains.plugins.template.services
+package com.github.phillco.talonjetbrains.services
 
-import org.jetbrains.plugins.template.MyBundle
+import com.github.phillco.talonjetbrains.MyBundle
 
 class MyApplicationService {
 
