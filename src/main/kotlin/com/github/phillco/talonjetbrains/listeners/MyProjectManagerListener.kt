@@ -8,6 +8,14 @@ import com.github.phillco.talonjetbrains.services.MyProjectService
 internal class MyProjectManagerListener : ProjectManagerListener {
 
     override fun projectOpened(project: Project) {
+        println("PHIL: project opened 2")
+
         project.service<MyProjectService>()
     }
+
+    override fun projectClosed(project: Project) {
+        println("PHIL: project closed")
+        super.projectClosed(project)
+    }
 }
+

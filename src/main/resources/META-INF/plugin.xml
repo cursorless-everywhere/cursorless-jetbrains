@@ -7,12 +7,34 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.phillco.talonjetbrains.services.MyApplicationService"/>
-        <projectService serviceImplementation="com.github.phillco.talonjetbrains.services.MyProjectService"/>
+        <applicationService
+                serviceImplementation="com.github.phillco.talonjetbrains.services.MyApplicationService"/>
+
+        <projectService
+                serviceImplementation="com.github.phillco.talonjetbrains.services.MyProjectService"/>
+
+<!--        <editorFactoryListener-->
+<!--                implementation="com.github.phillco.talonjetbrains.listeners.TalonEditorFactoryListener"/>-->
+
+
     </extensions>
 
     <applicationListeners>
-        <listener class="com.github.phillco.talonjetbrains.listeners.MyProjectManagerListener"
-                  topic="com.intellij.openapi.project.ProjectManagerListener"/>
+<!--        <listener-->
+<!--                class="com.github.phillco.talonjetbrains.listeners.MyProjectManagerListener"-->
+<!--                topic="com.intellij.openapi.project.ProjectManagerListener"/>-->
+
+<!--        <listener-->
+<!--                class="com.github.phillco.talonjetbrains.listeners.TalonAppLifecycleListener"-->
+<!--                topic="com.intellij.ide.AppLifecycleListener"/>-->
+
     </applicationListeners>
+
+
+    <projectListeners>
+<!--        <listener-->
+<!--                class="com.github.phillco.talonjetbrains.listeners.TalonDynamicPluginListener"-->
+<!--                topic="com.intellij.ide.plugins.DynamicPluginListener"/>-->
+
+    </projectListeners>
 </idea-plugin>

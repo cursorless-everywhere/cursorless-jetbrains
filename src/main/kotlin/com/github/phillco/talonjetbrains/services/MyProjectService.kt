@@ -6,6 +6,8 @@ import com.github.phillco.talonjetbrains.MyBundle
 class MyProjectService(project: Project) {
 
     init {
+        println("phil: project service in it")
+
         println(MyBundle.message("projectService", project.name))
     }
 }
