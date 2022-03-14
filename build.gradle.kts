@@ -57,7 +57,17 @@ tasks {
         }
         withType<KotlinCompile> {
             kotlinOptions.jvmTarget = it
+            kotlinOptions {
+                freeCompilerArgs += "-Xjvm-default=all"
+            }
+
         }
+    }
+
+    // NOTE(pcohen): allows for running multiple instances
+    // equivalent of setting `buildSearchableOptions.enabled = false` in Gradle
+    buildSearchableOptions {
+        enabled = false
     }
 
     wrapper {
