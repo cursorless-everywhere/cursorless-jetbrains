@@ -8,10 +8,10 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationService
-                serviceImplementation="com.github.phillco.talonjetbrains.services.MyApplicationService"/>
+                serviceImplementation="com.github.phillco.talonjetbrains.services.TalonApplicationService"/>
 
         <projectService
-                serviceImplementation="com.github.phillco.talonjetbrains.services.MyProjectService"/>
+                serviceImplementation="com.github.phillco.talonjetbrains.services.TalonProjectService"/>
 
 <!--        <editorFactoryListener-->
 <!--                implementation="com.github.phillco.talonjetbrains.listeners.TalonEditorFactoryListener"/>-->

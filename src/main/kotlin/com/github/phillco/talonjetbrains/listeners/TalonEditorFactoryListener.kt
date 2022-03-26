@@ -1,9 +1,6 @@
 package com.github.phillco.talonjetbrains.listeners
 
-import com.github.phillco.talonjetbrains.services.MyApplicationService
-import com.intellij.openapi.components.ApplicationComponent
-import com.intellij.openapi.components.ComponentManager
-import com.intellij.openapi.components.ServiceManager
+import com.github.phillco.talonjetbrains.services.TalonApplicationService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
@@ -18,7 +15,7 @@ class TalonEditorFactoryListener : EditorFactoryListener {
     override fun editorCreated(event: EditorFactoryEvent) {
         println("PHIL: editor created")
 
-        val applicationService = service<MyApplicationService>()
+        val applicationService = service<TalonApplicationService>()
         applicationService.editorCreated(event.editor)
 
     }

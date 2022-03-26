@@ -3,7 +3,7 @@ package com.github.phillco.talonjetbrains.services
 import com.intellij.openapi.project.Project
 import com.github.phillco.talonjetbrains.MyBundle
 
-class MyProjectService(project: Project) {
+class TalonProjectService(project: Project) {
 
     init {
         println("phil: project service in it")

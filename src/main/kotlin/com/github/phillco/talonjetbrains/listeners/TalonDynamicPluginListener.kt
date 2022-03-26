@@ -1,6 +1,6 @@
 package com.github.phillco.talonjetbrains.listeners
 
-import com.github.phillco.talonjetbrains.services.MyApplicationService
+import com.github.phillco.talonjetbrains.services.TalonApplicationService
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
 import kotlin.Throws
@@ -39,7 +39,7 @@ class TalonDynamicPluginListener : DynamicPluginListener {
         super.pluginLoaded(pluginDescriptor)
         println("PHIL: plugin loaded!")
 
-        val applicationService = service<MyApplicationService>()
+        val applicationService = service<TalonApplicationService>()
 
         applicationService.rebindListeners()
 

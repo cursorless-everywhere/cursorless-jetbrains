@@ -1,12 +1,11 @@
 package com.github.phillco.talonjetbrains.services
 
-import com.github.phillco.talonjetbrains.MyBundle
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 
-class MyApplicationService : Disposable {
+class TalonApplicationService : Disposable {
 
     val cursorWatchers = mutableMapOf<Editor, TalonCaretListener>()
 
