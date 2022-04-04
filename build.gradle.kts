@@ -14,6 +14,13 @@ plugins {
     id("org.jetbrains.changelog") version "1.3.1"
     // Gradle Qodana Plugin
     id("org.jetbrains.qodana") version "0.1.13"
+
+    kotlin("plugin.serialization") version "1.6.10"
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    implementation("io.sentry:sentry:5.7.1")
 }
 
 group = properties("pluginGroup")

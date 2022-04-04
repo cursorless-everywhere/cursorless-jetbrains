@@ -4,6 +4,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
 import com.github.phillco.talonjetbrains.services.TalonProjectService
+import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 
 internal class TalonProjectManagerListener : ProjectManagerListener {
 
@@ -11,6 +12,9 @@ internal class TalonProjectManagerListener : ProjectManagerListener {
         println("PHIL: project opened 2")
 
         project.service<TalonProjectService>()
+
+//        serializeEditorStateToFile()
+
     }
 
     override fun projectClosed(project: Project) {

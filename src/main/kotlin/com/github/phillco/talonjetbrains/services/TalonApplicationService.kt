@@ -4,6 +4,7 @@ import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import io.sentry.Sentry
 
 class TalonApplicationService : Disposable {
 
@@ -12,10 +13,17 @@ class TalonApplicationService : Disposable {
     init {
         println("phil: application service in it 2")
 
+        Sentry.init { options ->
+            options.dsn = "https://9cbfe01d53c14fc99e6a664054ca1a18@o313576.ingest.sentry.io/6307779"
+            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+            // We recommend adjusting this value in production.
+            options.tracesSampleRate = 1.0
+        }
+        println("phil: Sentry set up!")
+
+
 //        println(MyBundle.message("applicationService"))
     }
-
-
 
     fun foo() {
         println("PHIL: foo 3!")
