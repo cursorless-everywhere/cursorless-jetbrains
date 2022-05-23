@@ -1,0 +1,23 @@
+#!/bin/bash -e
+
+readProperty() {
+  ./gradlew properties -q | grep "$1:" | awk '{print $2}'
+}
+
+MODULE_NAME=$(readProperty "pluginName")
+VERSION=$(readProperty "version")
+DIST_ROOT="build/distributions/"
+PUBLISH_DIR="$HOME/bin/vendor"
+
+echo "$MODULE_NAME v$VERSION"
+
+#ls -l "$DIST_ROOT/"
+#rm "$DIST_ROOT"*.zip || true
+
+echo "Building..."
+./gradlew buildPlugin
+
+cp "$DIST_ROOT/$MODULE_NAME-$VERSION.zip" "$PUBLISH_DIR/$MODULE_NAME-latest.zip"
+echo -n "$VERSION" > "$PUBLISH_DIR/$MODULE_NAME-latest.version"
+
+echo "Wrote $PUBLISH_DIR/$MODULE_NAME-latest.zip ($VERSION)"

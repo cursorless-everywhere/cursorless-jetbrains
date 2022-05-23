@@ -1,6 +1,7 @@
 package com.github.phillco.talonjetbrains.services
 
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
+import com.github.phillco.talonjetbrains.sync.unlinkStateFile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
@@ -55,6 +56,7 @@ class TalonApplicationService : Disposable {
 
     override fun dispose() {
         println("PHIL: disposing")
+        unlinkStateFile()
 
 
         cursorWatchers.forEach { t, u ->  t.caretModel.removeCaretListener(u) }

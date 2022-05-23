@@ -1,0 +1,3 @@
+#!/bin/bash -e
+
+./buildLocal && $HOME/bin/pc/install-talon-jetbrains-plugin talon-jetbrains "$@"
