@@ -60,62 +60,53 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 //                HATS_PATH)
 //        )
 
-        val map = format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(File(HATS_PATH).readText())
-
-
+        val map =
+            format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(
+                File(HATS_PATH).readText()
+            )
 
         println("Redrawing...")
-        try {
-            map.keys.stream().filter { filePath: String ->
-                filePath == FileDocumentManager.getInstance().getFile(
-                    editor.document
-                )!!.path
-            }.forEach { filePath: String ->
-                map[filePath]!!.keys.forEach(
-                    Consumer { color: String ->
-                        map[filePath]!![color]!!.forEach(
-                            Consumer { range: CursorlessRange ->
-                                val cp = editor.visualPositionToXY(
-                                    editor.logicalToVisualPosition(
-                                        LogicalPosition(
-                                            range.start!!.line,
-                                            range.start!!.character
-                                        )
-                                    )
-                                )
-                                var jColor = JBColor.WHITE
-                                when (color) {
-                                    "red" -> jColor = JBColor.RED
-                                    "pink" -> jColor = JBColor(
-                                        JBColor.getHSBColor(
-                                            (332 / 336.0).toFloat(),
-                                            .54.toFloat(),
-                                            .96.toFloat()
-                                        ),
-                                        JBColor.getHSBColor(
-                                            (332 / 336.0).toFloat(),
-                                            .54.toFloat(),
-                                            .96.toFloat()
-                                        )
-                                    )
-                                    "yellow" -> jColor = JBColor.ORANGE
-                                    "green" -> jColor = JBColor.GREEN
-                                    "blue" -> jColor = JBColor.BLUE
-                                    "default" -> jColor = JBColor.GRAY
-                                }
-                                g.color = jColor
-                                val size = 4
-                                g.fillOval(
-                                    cp.x + 4,
-                                    cp.y - size / 2 - 0,
-                                    size,
-                                    size
-                                )
-                            })
-                    })
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        map.keys.stream().filter { filePath: String ->
+            filePath == FileDocumentManager.getInstance().getFile(
+                editor.document
+            )!!.path
+        }.forEach { filePath: String ->
+            map[filePath]!!.keys.forEach(Consumer { color: String ->
+                map[filePath]!![color]!!.forEach(Consumer { range: CursorlessRange ->
+                    val cp = editor.visualPositionToXY(
+                        editor.logicalToVisualPosition(
+                            LogicalPosition(
+                                range.start!!.line,
+                                range.start!!.character
+                            )
+                        )
+                    )
+                    var jColor = JBColor.WHITE
+                    when (color) {
+                        "red" -> jColor = JBColor.RED
+                        "pink" -> jColor = JBColor(
+                            JBColor.getHSBColor(
+                                (332 / 336.0).toFloat(),
+                                .54.toFloat(),
+                                .96.toFloat()
+                            ), JBColor.getHSBColor(
+                                (332 / 336.0).toFloat(),
+                                .54.toFloat(),
+                                .96.toFloat()
+                            )
+                        )
+                        "yellow" -> jColor = JBColor.ORANGE
+                        "green" -> jColor = JBColor.GREEN
+                        "blue" -> jColor = JBColor.BLUE
+                        "default" -> jColor = JBColor.GRAY
+                    }
+                    g.color = jColor
+                    val size = 4
+                    g.fillOval(
+                        cp.x + 4, cp.y - size / 2 - 0, size, size
+                    )
+                })
+            })
         }
     }
 
