@@ -1,6 +1,7 @@
 package com.github.phillco.talonjetbrains.services
 
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
+import com.github.phillco.talonjetbrains.listeners.TalonVisibleAreaListener
 import com.github.phillco.talonjetbrains.sync.unlinkStateFile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
@@ -10,6 +11,7 @@ import io.sentry.Sentry
 class TalonApplicationService : Disposable {
 
     val cursorWatchers = mutableMapOf<Editor, TalonCaretListener>()
+    val visibleAreaListeners = mutableMapOf<Editor, TalonVisibleAreaListener>()
 
     init {
         println("phil: application service in it 2")
@@ -34,6 +36,10 @@ class TalonApplicationService : Disposable {
         val cw = TalonCaretListener()
         e.caretModel.addCaretListener(cw)
         cursorWatchers[e] = cw
+
+        val visibleAreaListener = TalonVisibleAreaListener()
+        e.scrollingModel.addVisibleAreaListener(visibleAreaListener)
+        visibleAreaListeners[e] = visibleAreaListener
     }
 
     fun rebindListeners() {
@@ -59,5 +65,6 @@ class TalonApplicationService : Disposable {
         unlinkStateFile()
 
         cursorWatchers.forEach { t, u -> t.caretModel.removeCaretListener(u) }
+        visibleAreaListeners.forEach { t, u -> t.scrollingModel.removeVisibleAreaListener { u } }
     }
 }
