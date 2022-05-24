@@ -1,10 +1,9 @@
 package com.github.phillco.talonjetbrains.listeners
 
+import com.github.phillco.talonjetbrains.services.TalonProjectService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManagerListener
-import com.github.phillco.talonjetbrains.services.TalonProjectService
-import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 
 internal class TalonProjectManagerListener : ProjectManagerListener {
 
@@ -14,7 +13,6 @@ internal class TalonProjectManagerListener : ProjectManagerListener {
         project.service<TalonProjectService>()
 
 //        serializeEditorStateToFile()
-
     }
 
     override fun projectClosed(project: Project) {
@@ -22,4 +20,3 @@ internal class TalonProjectManagerListener : ProjectManagerListener {
         super.projectClosed(project)
     }
 }
-

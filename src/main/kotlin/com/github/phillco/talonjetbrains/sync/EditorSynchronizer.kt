@@ -111,7 +111,8 @@ fun serializeEditor(editor: Editor): EditorState {
 
     val ve = editor.scrollingModel.visibleArea
 
-    return EditorState(currentFile,
+    return EditorState(
+        currentFile,
         project?.let { serializeProject(it) },
         editor.xyToLogicalPosition(Point(ve.x, ve.y)).line,
         editor.xyToLogicalPosition(Point(ve.x, ve.y + ve.height)).line,
@@ -140,11 +141,9 @@ fun serializeOverallState(): OverallState {
         editor?.let { serializeEditor(it) },
         allEditors?.map { x -> serializeFileEditor(x) }
     )
-
 }
 
 var hasShutdown = false
-
 
 fun serializeEditorStateToFile() {
     try {
@@ -153,7 +152,6 @@ fun serializeEditorStateToFile() {
 
         val root = Paths.get(System.getProperty("user.home"), ".jb-state")
         val path = root.resolve("$pid.json")
-
 
         val state = serializeOverallState()
 
@@ -165,7 +163,10 @@ fun serializeEditorStateToFile() {
         Files.createDirectories(root)
         val json = Json.encodeToString(state)
         Files.writeString(path, json)
-        Files.writeString(root.resolve("${ApplicationNamesInfo.getInstance().fullProductName}.json"), json)
+        Files.writeString(
+            root.resolve("${ApplicationNamesInfo.getInstance().fullProductName}.json"),
+            json
+        )
         Files.writeString(root.resolve("latest.json"), json)
         println("Wrote state to: $path")
     } catch (e: Exception) {
@@ -178,7 +179,6 @@ fun markHasShutdown() {
 //    hasShutdown = true
 //    unlinkStateFile()
 }
-
 
 fun unlinkStateFile() {
     try {

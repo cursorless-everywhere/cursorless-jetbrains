@@ -10,7 +10,8 @@ import com.intellij.util.PsiErrorElementUtil
 class MyPluginTest : BasePlatformTestCase() {
 
     fun testXMLFile() {
-        val psiFile = myFixture.configureByText(XmlFileType.INSTANCE, "<foo>bar</foo>")
+        val psiFile =
+            myFixture.configureByText(XmlFileType.INSTANCE, "<foo>bar</foo>")
         val xmlFile = assertInstanceOf(psiFile, XmlFile::class.java)
 
         assertFalse(PsiErrorElementUtil.hasErrors(project, xmlFile.virtualFile))

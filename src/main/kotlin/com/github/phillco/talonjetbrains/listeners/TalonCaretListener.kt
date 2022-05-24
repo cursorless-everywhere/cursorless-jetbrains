@@ -12,13 +12,11 @@ class TalonCaretListener : CaretListener, Disposable {
     }
 
     override fun dispose() {
-
     }
 
     override fun caretAdded(event: CaretEvent) {
         super.caretAdded(event)
         serializeEditorStateToFile()
-
     }
 
     override fun caretRemoved(event: CaretEvent) {

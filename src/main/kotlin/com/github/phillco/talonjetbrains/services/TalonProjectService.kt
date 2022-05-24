@@ -1,7 +1,7 @@
 package com.github.phillco.talonjetbrains.services
 
-import com.intellij.openapi.project.Project
 import com.github.phillco.talonjetbrains.MyBundle
+import com.intellij.openapi.project.Project
 
 class TalonProjectService(project: Project) {
 

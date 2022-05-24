@@ -15,13 +15,13 @@ class TalonApplicationService : Disposable {
         println("phil: application service in it 2")
 
         Sentry.init { options ->
-            options.dsn = "https://9cbfe01d53c14fc99e6a664054ca1a18@o313576.ingest.sentry.io/6307779"
+            options.dsn =
+                "https://9cbfe01d53c14fc99e6a664054ca1a18@o313576.ingest.sentry.io/6307779"
             // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
             options.tracesSampleRate = 1.0
         }
         println("phil: Sentry set up!")
-
 
 //        println(MyBundle.message("applicationService"))
     }
@@ -39,7 +39,7 @@ class TalonApplicationService : Disposable {
     fun rebindListeners() {
         println("rebinding listeners...")
         EditorFactory.getInstance().allEditors.forEach { e ->
-            println("hi ${e}")
+            println("hi $e")
             this.editorCreated(e)
         }
 //        ProjectManager.getInstance().openProjects.forEach { proj ->
@@ -58,8 +58,6 @@ class TalonApplicationService : Disposable {
         println("PHIL: disposing")
         unlinkStateFile()
 
-
-        cursorWatchers.forEach { t, u ->  t.caretModel.removeCaretListener(u) }
-
+        cursorWatchers.forEach { t, u -> t.caretModel.removeCaretListener(u) }
     }
 }

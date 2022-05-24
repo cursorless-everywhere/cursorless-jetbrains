@@ -76,8 +76,7 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
                     val cp = editor.visualPositionToXY(
                         editor.logicalToVisualPosition(
                             LogicalPosition(
-                                range.start!!.line,
-                                range.start!!.character
+                                range.start!!.line, range.start!!.character
                             )
                         )
                     )

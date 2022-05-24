@@ -1,10 +1,9 @@
 package com.github.phillco.talonjetbrains.listeners
 
 import com.github.phillco.talonjetbrains.services.TalonApplicationService
+import com.intellij.ide.plugins.CannotUnloadPluginException
 import com.intellij.ide.plugins.DynamicPluginListener
 import com.intellij.ide.plugins.IdeaPluginDescriptor
-import kotlin.Throws
-import com.intellij.ide.plugins.CannotUnloadPluginException
 import com.intellij.openapi.components.service
 
 class TalonDynamicPluginListener : DynamicPluginListener {
@@ -28,7 +27,6 @@ class TalonDynamicPluginListener : DynamicPluginListener {
         println("PHIL: before unloaded...")
     }
 
-
     @Throws(CannotUnloadPluginException::class)
     override fun checkUnloadPlugin(pluginDescriptor: IdeaPluginDescriptor) {
         super.checkUnloadPlugin(pluginDescriptor)
@@ -42,7 +40,6 @@ class TalonDynamicPluginListener : DynamicPluginListener {
         val applicationService = service<TalonApplicationService>()
 
         applicationService.rebindListeners()
-
     }
 
     override fun pluginUnloaded(

@@ -10,18 +10,17 @@ class TalonEditorFactoryListener : EditorFactoryListener {
 
     var containers = ArrayList<CursorlessContainer>()
 
-
     init {
         println("phil: listener scope")
     }
+
     override fun editorCreated(event: EditorFactoryEvent) {
         println("PHIL: editor created")
 
         val applicationService = service<TalonApplicationService>()
         applicationService.editorCreated(event.editor)
 
-        containers += CursorlessContainer(event.editor);
-
+        containers += CursorlessContainer(event.editor)
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {

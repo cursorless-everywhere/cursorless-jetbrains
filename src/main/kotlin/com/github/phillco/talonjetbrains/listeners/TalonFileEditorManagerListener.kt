@@ -14,14 +14,12 @@ class TalonFileEditorManagerListener : FileEditorManagerListener {
         super.fileOpenedSync(source, file, editors)
         println("PHIL: file opened synchronized")
         serializeEditorStateToFile()
-
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
         super.fileOpened(source, file)
         println("PHIL: file opened (tab opened)")
         serializeEditorStateToFile()
-
     }
 
     override fun fileClosed(source: FileEditorManager, file: VirtualFile) {
@@ -34,6 +32,5 @@ class TalonFileEditorManagerListener : FileEditorManagerListener {
         super.selectionChanged(event)
         println("PHIL: selection changed (tab switched)")
         serializeEditorStateToFile()
-
     }
 }
