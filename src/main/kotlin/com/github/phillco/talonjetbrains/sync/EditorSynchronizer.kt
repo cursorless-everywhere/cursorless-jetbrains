@@ -168,6 +168,11 @@ fun serializeEditorStateToFile() {
             json
         )
         Files.writeString(root.resolve("latest.json"), json)
+
+        // Also write the cursorless state
+        val cursorlessRoot = Paths.get(System.getProperty("user.home"), ".cursorless")
+        Files.writeString(cursorlessRoot.resolve("editor-state.json"), json)
+
         println("Wrote state to: $path")
     } catch (e: Exception) {
         e.printStackTrace()
@@ -189,6 +194,9 @@ fun unlinkStateFile() {
             Files.delete(path)
             Files.delete(root.resolve("${ApplicationNamesInfo.getInstance().fullProductName}.json"))
             Files.delete(root.resolve("latest.json"))
+
+            val cursorlessRoot = Paths.get(System.getProperty("user.home"), ".cursorless")
+            Files.delete(cursorlessRoot.resolve("editor-state.json"))
             println("Deleted: $path")
         }
     } catch (e: Exception) {
