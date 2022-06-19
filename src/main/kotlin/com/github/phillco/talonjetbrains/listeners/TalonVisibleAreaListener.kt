@@ -1,5 +1,6 @@
 package com.github.phillco.talonjetbrains.listeners
 
+import com.github.phillco.talonjetbrains.sync.markEditorChange
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.event.VisibleAreaEvent
@@ -10,6 +11,6 @@ class TalonVisibleAreaListener : VisibleAreaListener {
 //        TODO("Not yet implemented")
         println("PHIL: scroll!")
 
-        serializeEditorStateToFile()
+        markEditorChange()
     }
 }

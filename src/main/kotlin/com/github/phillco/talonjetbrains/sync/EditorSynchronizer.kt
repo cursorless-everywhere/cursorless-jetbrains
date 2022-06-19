@@ -16,8 +16,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.awt.Point
+import java.io.File
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.io.path.absolutePathString
 
 // https://github.com/Kotlin/kotlinx.serialization/issues/993
 
@@ -25,6 +28,7 @@ import java.nio.file.Paths
 @Serializable
 data class OverallState(
     val pid: Long,
+    val serial: Long,
     val ideProduct: String,
     val ideVersion: String,
     val pluginVersion: String?,
@@ -36,6 +40,7 @@ data class OverallState(
 @Serializable
 data class EditorState(
     val path: String?,
+    val temporaryFilePath: String?,
     val project: ProjectState?,
     val firstVisibleLine: Int,
     val lastVisibleLine: Int,
@@ -75,6 +80,13 @@ data class Cursor(
     val column: Int,
 )
 
+var serial: Long = 0
+
+var hasShutdown = false
+
+var tempFiles = mutableMapOf<String, Path>()
+
+
 fun getProject(): Project? {
     return IdeFocusManager.findInstance().lastFocusedFrame?.project
 }
@@ -102,6 +114,19 @@ fun serializeEditor(editor: Editor): EditorState {
     val currentFile =
         FileDocumentManager.getInstance().getFile(document)?.path
 
+    var temporaryFilePath: Path? = null
+    if (currentFile != null) {
+        if (!tempFiles.containsKey(currentFile)) {
+            tempFiles.put(currentFile,
+            kotlin.io.path.createTempFile("cursorless-${File(currentFile).nameWithoutExtension}-",
+            ".${File(currentFile).extension}"))
+        }
+        temporaryFilePath = tempFiles.get(currentFile)
+
+
+        Files.writeString(temporaryFilePath, document.charsSequence)
+    }
+
     val cursors = editor.caretModel.allCarets.map { c ->
         Cursor(
             c.logicalPosition.line,
@@ -113,6 +138,7 @@ fun serializeEditor(editor: Editor): EditorState {
 
     return EditorState(
         currentFile,
+        temporaryFilePath?.absolutePathString(),
         project?.let { serializeProject(it) },
         editor.xyToLogicalPosition(Point(ve.x, ve.y)).line,
         editor.xyToLogicalPosition(Point(ve.x, ve.y + ve.height)).line,
@@ -135,6 +161,7 @@ fun serializeOverallState(): OverallState {
 
     return OverallState(
         ProcessHandle.current().pid(),
+        serial,
         ApplicationNamesInfo.getInstance().fullProductName,
         ApplicationInfo.getInstance().fullVersion,
         PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version,
@@ -143,11 +170,18 @@ fun serializeOverallState(): OverallState {
     )
 }
 
-var hasShutdown = false
+fun markEditorChange() {
+    serial += 1
+    serializeEditorStateToFile()
+}
+
+fun isActiveCursorlessEditor(): Boolean {
+    // TODO(pcohen): have a system for marking the current editor
+    return ApplicationNamesInfo.getInstance().fullProductName.contains("PyCharm")
+}
 
 fun serializeEditorStateToFile() {
     try {
-
         val pid = ProcessHandle.current().pid()
 
         val root = Paths.get(System.getProperty("user.home"), ".jb-state")
@@ -169,9 +203,15 @@ fun serializeEditorStateToFile() {
         )
         Files.writeString(root.resolve("latest.json"), json)
 
+        var subfolder = root.resolve("$pid")
+        Files.createDirectories(subfolder)
+
         // Also write the cursorless state
-        val cursorlessRoot = Paths.get(System.getProperty("user.home"), ".cursorless")
-        Files.writeString(cursorlessRoot.resolve("editor-state.json"), json)
+        if (isActiveCursorlessEditor()) {
+            val cursorlessRoot =
+                Paths.get(System.getProperty("user.home"), ".cursorless")
+            Files.writeString(cursorlessRoot.resolve("editor-state.json"), json)
+        }
 
         println("Wrote state to: $path")
     } catch (e: Exception) {
@@ -194,10 +234,13 @@ fun unlinkStateFile() {
             Files.delete(path)
             Files.delete(root.resolve("${ApplicationNamesInfo.getInstance().fullProductName}.json"))
             Files.delete(root.resolve("latest.json"))
-
-            val cursorlessRoot = Paths.get(System.getProperty("user.home"), ".cursorless")
-            Files.delete(cursorlessRoot.resolve("editor-state.json"))
             println("Deleted: $path")
+
+            if (isActiveCursorlessEditor()) {
+                val cursorlessRoot =
+                    Paths.get(System.getProperty("user.home"), ".cursorless")
+                Files.delete(cursorlessRoot.resolve("editor-state.json"))
+            }
         }
     } catch (e: Exception) {
         e.printStackTrace()

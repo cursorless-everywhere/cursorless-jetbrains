@@ -31,6 +31,7 @@ class TalonAppLifecycleListener : AppLifecycleListener {
     override fun appWillBeClosed(isRestart: Boolean) {
         println("PHIL: app closed...")
         markHasShutdown()
+        serializeEditorStateToFile()
         super.appWillBeClosed(isRestart)
     }
 }

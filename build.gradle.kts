@@ -19,8 +19,16 @@ plugins {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
-    implementation("io.sentry:sentry:5.7.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
+    implementation("io.sentry:sentry:5.7.4")
+    // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
+//    implementation("org.slf4j:slf4j-api:1.7.36")
+
+    implementation("io.methvin:directory-watcher:0.15.1") {
+        exclude("group",  "org.slf4j")
+    }
+
+
 }
 
 group = properties("pluginGroup")
@@ -29,6 +37,7 @@ version = properties("pluginVersion")
 // Configure project's dependencies
 repositories {
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 // Configure Gradle IntelliJ Plugin - read more: https://github.com/JetBrains/gradle-intellij-plugin
