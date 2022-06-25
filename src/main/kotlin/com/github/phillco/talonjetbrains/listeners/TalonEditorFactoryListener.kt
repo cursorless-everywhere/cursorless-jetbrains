@@ -21,6 +21,7 @@ class TalonEditorFactoryListener : EditorFactoryListener {
         applicationService.editorCreated(event.editor)
 
         containers += CursorlessContainer(event.editor)
+
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {

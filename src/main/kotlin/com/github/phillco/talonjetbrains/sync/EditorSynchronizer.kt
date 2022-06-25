@@ -11,16 +11,24 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
+import com.jetbrains.rd.util.use
 import io.sentry.Sentry
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.newsclub.net.unix.AFUNIXServerSocket
+import org.newsclub.net.unix.AFUNIXSocket
+import org.newsclub.net.unix.AFUNIXSocketAddress
 import java.awt.Point
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
+
 
 // https://github.com/Kotlin/kotlinx.serialization/issues/993
 
@@ -180,9 +188,41 @@ fun isActiveCursorlessEditor(): Boolean {
     return ApplicationNamesInfo.getInstance().fullProductName.contains("PyCharm")
 }
 
+fun testSocket(): String? {
+    val root = Paths.get(System.getProperty("user.home"), ".cursorless/vscode-socket").absolutePathString()
+
+    val socketFile = File(root)
+    val sock = AFUNIXSocket.newInstance()
+    val address = AFUNIXSocketAddress.of(socketFile)
+    sock.connect(address)
+    var resp: String? = null;
+    try {
+//        sock.use {
+            sock.inputStream.bufferedReader().use { inputStream ->
+                sock.outputStream.bufferedWriter().use { outputStream ->
+                    outputStream.write("Hi from JB!")
+                    println("Sent to VS Code")
+
+                    resp = inputStream.readText()
+                    println("Received from VS Code: $resp")
+                }
+            }
+//        }
+    }
+    catch (e: IOException) {
+        e.printStackTrace()
+        return "Error: ${e}"
+    }
+
+    return resp
+}
+
+
 fun serializeEditorStateToFile() {
     try {
         val pid = ProcessHandle.current().pid()
+
+//        testSocket()
 
         val root = Paths.get(System.getProperty("user.home"), ".jb-state")
         val path = root.resolve("$pid.json")
@@ -203,8 +243,11 @@ fun serializeEditorStateToFile() {
         )
         Files.writeString(root.resolve("latest.json"), json)
 
-        var subfolder = root.resolve("$pid")
-        Files.createDirectories(subfolder)
+        // TODO(pcohen): only write this when debugging
+        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
+
+//        var subfolder = root.resolve("$pid")
+//        Files.createDirectories(subfolder)
 
         // Also write the cursorless state
         if (isActiveCursorlessEditor()) {

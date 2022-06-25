@@ -20,7 +20,8 @@ plugins {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
-    implementation("io.sentry:sentry:5.7.4")
+    implementation("io.sentry:sentry:6.0.0")
+    implementation("com.kohlschutter.junixsocket:junixsocket-core:2.5.0")
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
 //    implementation("org.slf4j:slf4j-api:1.7.36")
 

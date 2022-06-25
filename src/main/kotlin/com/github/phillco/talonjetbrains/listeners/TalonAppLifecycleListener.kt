@@ -1,9 +1,15 @@
 package com.github.phillco.talonjetbrains.listeners
 
+import com.github.phillco.talonjetbrains.cursorless.VSCodeStateWatcher
 import com.github.phillco.talonjetbrains.sync.markHasShutdown
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
+import com.github.phillco.talonjetbrains.talon.createControlSocket
 import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.project.Project
+import java.net.StandardProtocolFamily
+import kotlin.concurrent.thread
+
+var watcher: VSCodeStateWatcher? = null;
 
 class TalonAppLifecycleListener : AppLifecycleListener {
     override fun appFrameCreated(commandLineArgs: List<String>) {
@@ -15,6 +21,11 @@ class TalonAppLifecycleListener : AppLifecycleListener {
         super.appStarting(projectFromCommandLine)
         println("PHIL: app starting...")
         serializeEditorStateToFile()
+
+        thread {
+            createControlSocket()
+        }
+        watcher = VSCodeStateWatcher()
     }
 
     override fun appStarted() {
