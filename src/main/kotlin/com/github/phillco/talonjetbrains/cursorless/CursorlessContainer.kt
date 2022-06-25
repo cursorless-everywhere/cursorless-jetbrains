@@ -1,11 +1,8 @@
 package com.github.phillco.talonjetbrains.cursorless
 
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
-import com.intellij.ide.plugins.PluginManager
-import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
-import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.ui.JBColor
 import groovy.json.JsonException
 import io.methvin.watcher.DirectoryChangeEvent
@@ -13,8 +10,6 @@ import io.methvin.watcher.DirectoryWatcher
 import io.sentry.Sentry
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.slf4j.helpers.NOPLogger
 import java.awt.Graphics
 import java.io.File
@@ -41,7 +36,7 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 
         this.watcher = DirectoryWatcher.builder()
             .path(Path.of(HATS_PATH)) // or use paths(directoriesToWatch)
-            .logger( NOPLogger.NOP_LOGGER)
+            .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
                 println("PHIL: " + event)
                 this.invalidate()
@@ -94,18 +89,26 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 ////        watchChannel.close()
 //    }
 
+    fun getHats(): HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>? {
+        try {
+            val format = Json { isLenient = true }
+
+            return format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(
+                File(HATS_PATH).readText()
+            )
+        } catch (e: JsonException) {
+            return null
+        }
+    }
+
     fun doPainting(g: Graphics) {
-        val format = Json { isLenient = true }
 
 //        val hats = Json.
 //            File(
 //                HATS_PATH)
 //        )
 
-        val map =
-            format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(
-                File(HATS_PATH).readText()
-            )
+        val map = getHats() ?: return
 
 //        println("Redrawing...")
         map.keys.stream().filter { filePath: String ->
@@ -192,16 +195,17 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 
         try {
             doPainting(g)
-        } catch (e: NullPointerException){
+        } catch (e: NullPointerException) {
             Sentry.captureException(e)
             e.printStackTrace()
-        } catch (e: JsonException){
+        } catch (e: JsonException) {
             Sentry.captureException(e)
             e.printStackTrace()
         }
     }
 
     companion object {
-        var HATS_PATH = System.getProperty("user.home") + "/.cursorless/vscode-hats.json"
+        var HATS_PATH =
+            System.getProperty("user.home") + "/.cursorless/vscode-hats.json"
     }
 }
