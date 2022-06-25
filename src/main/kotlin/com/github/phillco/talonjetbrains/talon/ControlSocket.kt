@@ -8,10 +8,11 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.newsclub.net.unix.AFUNIXServerSocket
+import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
+import org.newsclub.net.unix.server.SocketServer
 import java.io.BufferedWriter
 import java.io.File
-import java.io.IOException
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
@@ -79,8 +80,19 @@ fun parseInput(inputString: String, outputStream: BufferedWriter) {
             commandResponse,
             Json.encodeToString(request),
         )
+        println(
+            "[Control Socket] Going to send response: |${response}|"
+        )
 
         outputStream.write(Json.encodeToString(response) + "\n")
+        println(
+            "[Control Socket] Wrote response: |${response}|"
+        )
+//        outputStream.flush()
+//        println(
+//            "[Control Socket] Flushed"
+//        )
+
     } catch (e: Exception) {
 //        outputStream.write("${e}\n")
         outputStream.write(
@@ -95,47 +107,78 @@ fun parseInput(inputString: String, outputStream: BufferedWriter) {
     }
 }
 
-fun createControlSocket() {
-    println("[Control Socket] Creating control socket...")
 
-    val pid = ProcessHandle.current().pid()
-    val root = Paths.get(System.getProperty("user.home"), ".jb-state/$pid.sock")
-        .absolutePathString()
+val pid = ProcessHandle.current().pid()
+val root = Paths.get(System.getProperty("user.home"), ".jb-state/$pid.sock")
+    .absolutePathString()
 
-    val socketFile = File(root)
-    val server = AFUNIXServerSocket.newInstance()
-    server.bind(AFUNIXSocketAddress.of(socketFile))
-    while (!Thread.interrupted()) {
-        println("[Control Socket] Waiting for connection at ${root}...")
-        try {
-            server.accept().use { sock ->
-                println("[Control Socket] Connected: $sock")
+val socketFile = File(root)
+
+class ControlServer :
+    SocketServer<AFUNIXSocketAddress, AFUNIXSocket, AFUNIXServerSocket>(
+        AFUNIXSocketAddress.of(socketFile)
+    ) {
+
+//    constructor() : super() {
+//
+//    }
+
+    override fun newServerSocket(): AFUNIXServerSocket {
+        val server = AFUNIXServerSocket.newInstance()
+        server.bind(AFUNIXSocketAddress.of(socketFile))
+        return server
+    }
+
+    override fun doServeSocket(sock: AFUNIXSocket) {
+        println("[Control Socket] Connected: $sock")
 
 
 //                println("[Control Socket] Reading: $sock")
 //                val inputText: String = sock.inputStream.bufferedReader().use(BufferedReader::readText)
+
+        try {
+            var imp: String = "null"
+            sock.use { sock ->
                 sock.inputStream.bufferedReader().use { inputStream ->
-                    sock.outputStream.bufferedWriter().use { outputStream ->
-                        try {
-                            println("[Control Socket] Reading: $sock")
-                            val imp = inputStream.readText()
-                            println("[Control Socket] Read: $imp")
-
-
-                            parseInput(imp, outputStream)
-                        } catch (e: Exception) {
-                            outputStream.write("${e}")
-                        }
+                    try {
+                        println("[Control Socket] Reading")
+                        imp = inputStream.readText()
+                        println("[Control Socket] Read: $imp")
+                    } catch (e: Exception) {
+                        println("[Control Socket] INNER ERROR READING: $e")
+                        e.printStackTrace()
                     }
                 }
+
+                Thread.sleep(300)
+
+                sock.outputStream.bufferedWriter().use { outputStream ->
+                    outputStream.write("hi\n")
+                    try {
+                        parseInput(imp, outputStream)
+                        outputStream.close()
+                    } catch (e: Exception) {
+                        println("[Control Socket] INNER ERROR WRITING: $e")
+                        outputStream.write("${e}")
+                        e.printStackTrace()
+                    }
+
+                }
             }
-        } catch (e: IOException) {
-            println(e)
-            if (server.isClosed) {
-                throw e
-            } else {
-                e.printStackTrace()
-            }
+        } catch (e: Exception) {
+            println("[Control Socket] ERROR: $e")
+            e.printStackTrace()
         }
+
+        println("[Control Socket] Done Serving")
+        sock.close()
     }
+
+}
+
+fun createControlSocket() {
+    println("[Control Socket] Creating control socket...")
+
+    val server = ControlServer()
+    server.start()
 }
