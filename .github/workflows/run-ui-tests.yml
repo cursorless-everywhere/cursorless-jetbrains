@@ -8,11 +8,9 @@
 # Workflow is triggered manually.
 
 name: Run UI Tests
-on:
-  workflow_dispatch
+on: workflow_dispatch
 
 jobs:
-
   testUI:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -30,7 +28,6 @@ jobs:
             runIde: ./gradlew runIdeForUiTests &
 
     steps:
-
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v2.4.0

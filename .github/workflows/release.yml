@@ -7,13 +7,11 @@ on:
     types: [prereleased, released]
 
 jobs:
-
   # Prepare and publish the plugin to the Marketplace repository
   release:
     name: Publish Plugin
     runs-on: ubuntu-latest
     steps:
-
       # Check out current repository
       - name: Fetch Sources
         uses: actions/checkout@v2.4.0
@@ -37,7 +35,7 @@ jobs:
           ${{ github.event.release.body }}
           EOM
           )"
-          
+
           CHANGELOG="${CHANGELOG//'%'/'%25'}"
           CHANGELOG="${CHANGELOG//$'\n'/'%0A'}"
           CHANGELOG="${CHANGELOG//$'\r'/'%0D'}"
