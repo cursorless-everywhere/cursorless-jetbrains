@@ -149,7 +149,11 @@ fun cursorless(command: Command): String? {
 //        getEditor().
     }
 
-    return resultString
+    // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
+    // fixed chaining since this doesn't actually block on Cursorless applying the changes.
+    val syncResult: String? = sendCommand(VSCodeCommand("applyPrimaryEditorState"))
+
+    return "${resultString} ${syncResult}"
 }
 
 fun outreach(command: Command): String? {

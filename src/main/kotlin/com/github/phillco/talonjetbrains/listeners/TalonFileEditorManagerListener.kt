@@ -19,6 +19,8 @@ class TalonFileEditorManagerListener : FileEditorManagerListener {
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
         super.fileOpened(source, file)
+        // TODO(pcohen): we seem to be missing a handler on the file editing
+        // in general. For example, control-backspace does not fire.
         println("PHIL: file opened (tab opened)")
         markEditorChange()
     }
