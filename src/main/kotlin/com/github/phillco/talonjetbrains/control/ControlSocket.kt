@@ -1,6 +1,14 @@
 package com.github.phillco.talonjetbrains.talon
 
-import com.github.phillco.talonjetbrains.sync.testSocket
+import com.github.phillco.talonjetbrains.cursorless.CursorlessContainer
+import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
+import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
+import com.github.phillco.talonjetbrains.cursorless.sendCommand
+import com.github.phillco.talonjetbrains.sync.getEditor
+import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ApplicationNamesInfo
+import com.intellij.openapi.command.CommandProcessor
 import com.jetbrains.rd.util.use
 import io.sentry.Sentry
 import kotlinx.serialization.Serializable
@@ -11,7 +19,6 @@ import org.newsclub.net.unix.AFUNIXServerSocket
 import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
 import org.newsclub.net.unix.server.SocketServer
-import java.io.BufferedWriter
 import java.io.File
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
@@ -28,6 +35,7 @@ data class Command(
 @Serializable
 data class Response(
     val pid: Long,
+    val product: String,
     val response: CommandResponse? = null,
     val receivedCommand: String?,
     val error: String? = null,
@@ -40,6 +48,26 @@ data class CommandResponse(
     val args: List<String>? = null,
 )
 
+@Suppress("PROVIDED_RUNTIME_TOO_LOW")
+@Serializable
+// position, range (pair of position), selection (anchor+active position)
+data class VSCodeState(
+    val path: String,
+    val cursors: List<VSCodeSelection>,
+    val contentsPath: String? = null,
+)
+
+
+@Suppress("PROVIDED_RUNTIME_TOO_LOW")
+@Serializable
+// position, range (pair of position), selection (anchor+active position)
+data class CursorlessResponse(
+    val oldState: VSCodeState? = null,
+    val newState: VSCodeState? = null,
+    val commandResult: String? = null,
+    val error: String? = null,
+)
+
 fun dispatch(command: Command): CommandResponse {
     return when (command.command) {
         "ping" -> CommandResponse("pong")
@@ -48,15 +76,65 @@ fun dispatch(command: Command): CommandResponse {
             Thread.sleep(5000)
             CommandResponse("finally")
         }
-        "outreach" -> CommandResponse(testSocket())
+        "outreach" -> {
+            val response = outreach(command)
+            CommandResponse(response)
+        }
+        "cursorless" -> CommandResponse(cursorless(command))
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
         }
     }
 }
 
+fun cursorless(command: Command): String? {
+    val command = VSCodeCommand(
+        "cursorless",
+        null,
+        null,
+        command.args!![0]
+    )
+
+    val resultString: String? = sendCommand(command)
+    val format = Json { isLenient = true }
+    val state = format.decodeFromString<CursorlessResponse>(
+        resultString!!
+    )
+
+    if (state.error != null) {
+        throw RuntimeException(state.error)
+    }
+
+    ApplicationManager.getApplication().invokeAndWait {
+        val newContents = File(state.newState!!.contentsPath!!).readText()
+
+        ApplicationManager.getApplication().runWriteAction {
+            CommandProcessor.getInstance().executeCommand(getEditor()!!.project,
+                {
+                    getEditor()?.document?.setText(newContents)
+                    getEditor()?.caretModel?.caretsAndSelections =
+                        state.newState!!.cursors.map { it.toCaretState() }
+
+                }, "Insert", "insertGroup")
+        }
+
+//        getEditor().
+    }
+
+    return resultString
+}
+
+fun outreach(command: Command): String? {
+    val commandToCode = VSCodeCommand(
+        "pid"
+    )
+    return sendCommand(commandToCode)
+}
+
 
 fun parseInput(inputString: String): String {
+    val productInfo =
+        "${ApplicationNamesInfo.getInstance().fullProductName} ${ApplicationInfo.getInstance().fullVersion}"
     try {
         println(
             "[Control Socket] Received block: |${inputString}|"
@@ -77,6 +155,7 @@ fun parseInput(inputString: String): String {
 
         val response = Response(
             ProcessHandle.current().pid(),
+            productInfo,
             commandResponse,
             Json.encodeToString(request),
         )
@@ -97,7 +176,7 @@ fun parseInput(inputString: String): String {
         Sentry.captureException(e)
         return Json.encodeToString(
             Response(
-                ProcessHandle.current().pid(), null, e.message
+                ProcessHandle.current().pid(), productInfo, null, e.message
             )
         ) + "\n"
     }
@@ -131,19 +210,18 @@ class ControlServer :
         val bufferSize: Int = sock.getReceiveBufferSize()
         val buffer = ByteArray(bufferSize)
 
+        // TODO(pcohen): build up a buffer until we get to a new line
+        // since we can't guarantee that the entire message will be received in one chunk
         sock.getInputStream().use { `is` ->
             sock.getOutputStream().use { os ->
                 var read: Int
 
                 while (`is`.read(buffer).also { read = it } != -1) {
-
                     val inputString = String(buffer, 0, read)
 
                     print("RECEIVED: ${inputString}")
 
                     val response = parseInput(inputString)
-
-
                     os.write(response.encodeToByteArray())
 
                     println(

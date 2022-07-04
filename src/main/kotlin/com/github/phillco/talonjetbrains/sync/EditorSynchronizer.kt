@@ -188,35 +188,6 @@ fun isActiveCursorlessEditor(): Boolean {
     return ApplicationNamesInfo.getInstance().fullProductName.contains("PyCharm")
 }
 
-fun testSocket(): String? {
-    val root = Paths.get(System.getProperty("user.home"), ".cursorless/vscode-socket").absolutePathString()
-
-    val socketFile = File(root)
-    val sock = AFUNIXSocket.newInstance()
-    val address = AFUNIXSocketAddress.of(socketFile)
-    sock.connect(address)
-    var resp: String? = null;
-    try {
-//        sock.use {
-            sock.inputStream.bufferedReader().use { inputStream ->
-                sock.outputStream.bufferedWriter().use { outputStream ->
-                    outputStream.write("Hi from JB!")
-                    println("Sent to VS Code")
-
-                    resp = inputStream.readText()
-                    println("Received from VS Code: $resp")
-                }
-            }
-//        }
-    }
-    catch (e: IOException) {
-        e.printStackTrace()
-        return "Error: ${e}"
-    }
-
-    return resp
-}
-
 
 fun serializeEditorStateToFile() {
     try {
@@ -244,7 +215,7 @@ fun serializeEditorStateToFile() {
         Files.writeString(root.resolve("latest.json"), json)
 
         // TODO(pcohen): only write this when debugging
-        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
+//        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
 
 //        var subfolder = root.resolve("$pid")
 //        Files.createDirectories(subfolder)
