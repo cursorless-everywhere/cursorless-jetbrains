@@ -5,6 +5,7 @@ import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
 import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
 import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.sync.getEditor
+import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
@@ -20,6 +21,7 @@ import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
 import org.newsclub.net.unix.server.SocketServer
 import java.io.File
+import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
@@ -38,6 +40,8 @@ data class Response(
     val product: String,
     val response: CommandResponse? = null,
     val receivedCommand: String?,
+    // TODO(pcohen): make this type definition include
+    // either an error or response object
     val error: String? = null,
 )
 
@@ -72,6 +76,13 @@ fun dispatch(command: Command): CommandResponse {
     return when (command.command) {
         "ping" -> CommandResponse("pong")
         "hi" -> CommandResponse("bye")
+        "serializeState" -> {
+            var path: Path? = null;
+            ApplicationManager.getApplication().invokeAndWait {
+                path = serializeEditorStateToFile()
+            }
+            CommandResponse("wrote state to $path")
+        }
         "slow" -> {
             Thread.sleep(5000)
             CommandResponse("finally")
@@ -108,14 +119,31 @@ fun cursorless(command: Command): String? {
     ApplicationManager.getApplication().invokeAndWait {
         val newContents = File(state.newState!!.contentsPath!!).readText()
 
-        ApplicationManager.getApplication().runWriteAction {
-            CommandProcessor.getInstance().executeCommand(getEditor()!!.project,
-                {
-                    getEditor()?.document?.setText(newContents)
-                    getEditor()?.caretModel?.caretsAndSelections =
-                        state.newState!!.cursors.map { it.toCaretState() }
+        val isWrite = newContents != getEditor()?.document!!.text
 
-                }, "Insert", "insertGroup")
+        // Only use the write action if the contents are changing;
+        // support selection in read only files
+        if (isWrite) {
+            ApplicationManager.getApplication().runWriteAction {
+                CommandProcessor.getInstance()
+                    .executeCommand(getEditor()!!.project,
+                        {
+                            getEditor()?.document?.setText(newContents)
+                            getEditor()?.caretModel?.caretsAndSelections =
+                                state.newState.cursors.map { it.toCaretState() }
+                        }, "Insert", "insertGroup"
+                    )
+            }
+        } else {
+            ApplicationManager.getApplication().runReadAction {
+                CommandProcessor.getInstance()
+                    .executeCommand(getEditor()!!.project,
+                        {
+                            getEditor()?.caretModel?.caretsAndSelections =
+                                state.newState.cursors.map { it.toCaretState() }
+                        }, "Insert", "insertGroup"
+                    )
+            }
         }
 
 //        getEditor().

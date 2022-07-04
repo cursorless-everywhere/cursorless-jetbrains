@@ -184,25 +184,33 @@ fun markEditorChange() {
 }
 
 fun isActiveCursorlessEditor(): Boolean {
-    // TODO(pcohen): have a system for marking the current editor
-    return ApplicationNamesInfo.getInstance().fullProductName.contains("PyCharm")
+    val path =
+        Paths.get(System.getProperty("user.home"), ".cursorless").resolve("primary-editor-pid")
+
+    try {
+        return Files.readString(path).trim().toLong() == ProcessHandle.current().pid()
+    } catch (e: Exception) {
+        return false
+    }
+}
+
+fun stateFilePath(): Path {
+    val pid = ProcessHandle.current().pid()
+    val root = Paths.get(System.getProperty("user.home"), ".jb-state")
+    return root.resolve("$pid.json")
 }
 
 
-fun serializeEditorStateToFile() {
+fun serializeEditorStateToFile(): Path? {
     try {
-        val pid = ProcessHandle.current().pid()
-
-//        testSocket()
-
         val root = Paths.get(System.getProperty("user.home"), ".jb-state")
-        val path = root.resolve("$pid.json")
+        val path = stateFilePath()
 
         val state = serializeOverallState()
 
         if (hasShutdown) {
             println("Skipping writing state to: $path; shutdown initiated")
-            return
+            return null
         }
 
         Files.createDirectories(root)
@@ -228,9 +236,11 @@ fun serializeEditorStateToFile() {
         }
 
         println("Wrote state to: $path")
+        return path
     } catch (e: Exception) {
         e.printStackTrace()
         Sentry.captureException(e)
+        return null;
     }
 }
 
