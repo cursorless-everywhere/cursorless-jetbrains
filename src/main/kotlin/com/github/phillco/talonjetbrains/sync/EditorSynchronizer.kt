@@ -4,7 +4,9 @@ import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
+import com.intellij.openapi.editor.CaretState
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
@@ -53,7 +55,8 @@ data class EditorState(
     val firstVisibleLine: Int,
     val lastVisibleLine: Int,
 
-    val cursors: List<Cursor>
+    val cursors: List<Cursor>,
+    val selections: List<Selection>,
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -87,6 +90,47 @@ data class Cursor(
     val line: Int,
     val column: Int,
 )
+
+@Suppress("PROVIDED_RUNTIME_TOO_LOW")
+@Serializable
+data class Selection(
+    val start: Cursor?,
+    val end: Cursor?,
+    var cursorPosition: Cursor?,
+
+    // NOTE(pcohen): these are provided for convenience for VS Code
+    val active: Cursor?,
+    val anchor: Cursor?,
+)
+
+// TODO(pcohen): can we put these directly on the data classes?
+fun cursorFromLogicalPosition(lp: LogicalPosition): Cursor = Cursor(lp.line, lp.column)
+fun selectionFromCaretState(lp: CaretState): Selection {
+    val start = lp.selectionStart?.let { cursorFromLogicalPosition(it) }
+    val end = lp.selectionEnd?.let { cursorFromLogicalPosition(it) }
+    val cursor = lp.caretPosition?.let { cursorFromLogicalPosition(it) }
+
+    // provide the "anchor" and "active" for ease of implementation inside of Visual Studio Code
+    // note - if the cursor isn't either of these, will return null
+    var active: Cursor? = null
+    var anchor: Cursor? = null
+    if (start == cursor) {
+        active = start
+        anchor = end
+    } else if (end == cursor) {
+        active = end
+        anchor = start
+    }
+
+    return Selection(
+        start,
+        end,
+        cursor,
+        active,
+        anchor,
+    )
+}
+
 
 var serial: Long = 0
 
@@ -142,6 +186,8 @@ fun serializeEditor(editor: Editor): EditorState {
         )
     }
 
+    val selections = editor.caretModel.caretsAndSelections.map { selectionFromCaretState(it) }
+
     val ve = editor.scrollingModel.visibleArea
 
     return EditorState(
@@ -150,7 +196,8 @@ fun serializeEditor(editor: Editor): EditorState {
         project?.let { serializeProject(it) },
         editor.xyToLogicalPosition(Point(ve.x, ve.y)).line,
         editor.xyToLogicalPosition(Point(ve.x, ve.y + ve.height)).line,
-        cursors
+        cursors,
+        selections,
     )
 }
 
