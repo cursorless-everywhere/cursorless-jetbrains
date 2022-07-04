@@ -97,6 +97,9 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
             )
         } catch (e: JsonException) {
             return null
+        } catch (e: Exception) {
+            // kotlinx.serialization.json.internal.JsonDecodingException
+            return null
         }
     }
 
