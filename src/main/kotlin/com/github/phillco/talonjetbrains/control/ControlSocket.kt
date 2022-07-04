@@ -1,8 +1,7 @@
 package com.github.phillco.talonjetbrains.talon
 
-import com.github.phillco.talonjetbrains.cursorless.CursorlessContainer
-import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
 import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
+import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
 import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
@@ -25,12 +24,11 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
-
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class Command(
     val command: String,
-    val args: List<String>? = null,
+    val args: List<String>? = null
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -42,14 +40,14 @@ data class Response(
     val receivedCommand: String?,
     // TODO(pcohen): make this type definition include
     // either an error or response object
-    val error: String? = null,
+    val error: String? = null
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class CommandResponse(
     val result: String? = null,
-    val args: List<String>? = null,
+    val args: List<String>? = null
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -58,9 +56,8 @@ data class CommandResponse(
 data class VSCodeState(
     val path: String,
     val cursors: List<VSCodeSelection>,
-    val contentsPath: String? = null,
+    val contentsPath: String? = null
 )
-
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
@@ -69,7 +66,7 @@ data class CursorlessResponse(
     val oldState: VSCodeState? = null,
     val newState: VSCodeState? = null,
     val commandResult: String? = null,
-    val error: String? = null,
+    val error: String? = null
 )
 
 fun dispatch(command: Command): CommandResponse {
@@ -77,7 +74,7 @@ fun dispatch(command: Command): CommandResponse {
         "ping" -> CommandResponse("pong")
         "hi" -> CommandResponse("bye")
         "serializeState" -> {
-            var path: Path? = null;
+            var path: Path? = null
             ApplicationManager.getApplication().invokeAndWait {
                 path = serializeEditorStateToFile()
             }
@@ -126,22 +123,28 @@ fun cursorless(command: Command): String? {
         if (isWrite) {
             ApplicationManager.getApplication().runWriteAction {
                 CommandProcessor.getInstance()
-                    .executeCommand(getEditor()!!.project,
+                    .executeCommand(
+                        getEditor()!!.project,
                         {
                             getEditor()?.document?.setText(newContents)
                             getEditor()?.caretModel?.caretsAndSelections =
                                 state.newState.cursors.map { it.toCaretState() }
-                        }, "Insert", "insertGroup"
+                        },
+                        "Insert",
+                        "insertGroup"
                     )
             }
         } else {
             ApplicationManager.getApplication().runReadAction {
                 CommandProcessor.getInstance()
-                    .executeCommand(getEditor()!!.project,
+                    .executeCommand(
+                        getEditor()!!.project,
                         {
                             getEditor()?.caretModel?.caretsAndSelections =
                                 state.newState.cursors.map { it.toCaretState() }
-                        }, "Insert", "insertGroup"
+                        },
+                        "Insert",
+                        "insertGroup"
                     )
             }
         }
@@ -153,7 +156,7 @@ fun cursorless(command: Command): String? {
     // fixed chaining since this doesn't actually block on Cursorless applying the changes.
     val syncResult: String? = sendCommand(VSCodeCommand("applyPrimaryEditorState"))
 
-    return "${resultString} ${syncResult}"
+    return "$resultString $syncResult"
 }
 
 fun outreach(command: Command): String? {
@@ -163,13 +166,12 @@ fun outreach(command: Command): String? {
     return sendCommand(commandToCode)
 }
 
-
 fun parseInput(inputString: String): String {
     val productInfo =
         "${ApplicationNamesInfo.getInstance().fullProductName} ${ApplicationInfo.getInstance().fullVersion}"
     try {
         println(
-            "[Control Socket] Received block: |${inputString}|"
+            "[Control Socket] Received block: |$inputString|"
         )
 
         val format = Json { isLenient = true }
@@ -178,9 +180,8 @@ fun parseInput(inputString: String): String {
             inputString
         )
 
-
         println(
-            "[Control Socket] Received command: |${request}|"
+            "[Control Socket] Received command: |$request|"
         )
 
         val commandResponse = dispatch(request)
@@ -189,10 +190,10 @@ fun parseInput(inputString: String): String {
             ProcessHandle.current().pid(),
             productInfo,
             commandResponse,
-            Json.encodeToString(request),
+            Json.encodeToString(request)
         )
         println(
-            "[Control Socket] Going to send response: |${response}|"
+            "[Control Socket] Going to send response: |$response|"
         )
 
         return Json.encodeToString(response) + "\n"
@@ -201,19 +202,20 @@ fun parseInput(inputString: String): String {
 //        println(
 //            "[Control Socket] Flushed"
 //        )
-
     } catch (e: Exception) {
 //        outputStream.write("${e}\n")
         e.printStackTrace()
         Sentry.captureException(e)
         return Json.encodeToString(
             Response(
-                ProcessHandle.current().pid(), productInfo, null, e.message
+                ProcessHandle.current().pid(),
+                productInfo,
+                null,
+                e.message
             )
         ) + "\n"
     }
 }
-
 
 val pid = ProcessHandle.current().pid()
 val root = Paths.get(System.getProperty("user.home"), ".jb-state/$pid.sock")
@@ -251,21 +253,21 @@ class ControlServer :
                 while (`is`.read(buffer).also { read = it } != -1) {
                     val inputString = String(buffer, 0, read)
 
-                    print("RECEIVED: ${inputString}")
+                    print("RECEIVED: $inputString")
 
                     val response = parseInput(inputString)
                     os.write(response.encodeToByteArray())
 
                     println(
-                        "[Control Socket] Wrote response: |${response}|"
+                        "[Control Socket] Wrote response: |$response|"
                     )
                 }
             }
         }
 //
 //
-////                println("[Control Socket] Reading: $sock")
-////                val inputText: String = sock.inputStream.bufferedReader().use(BufferedReader::readText)
+// //                println("[Control Socket] Reading: $sock")
+// //                val inputText: String = sock.inputStream.bufferedReader().use(BufferedReader::readText)
 //
 //        try {
 //            var imp: String = "null"
@@ -291,18 +293,18 @@ class ControlServer :
 //            println("[Control Socket] Done writing")
 //
 //
-////            sock.outputStream.bufferedWriter().use { outputStream ->
-////                outputStream.write("hi\n")
-////                try {
-////                    parseInput(imp, outputStream)
-////                    outputStream.close()
-////                } catch (e: Exception) {
-////                    println("[Control Socket] INNER ERROR WRITING: $e")
-////                    outputStream.write("${e}")
-////                    e.printStackTrace()
-////                }
-////
-////            }
+// //            sock.outputStream.bufferedWriter().use { outputStream ->
+// //                outputStream.write("hi\n")
+// //                try {
+// //                    parseInput(imp, outputStream)
+// //                    outputStream.close()
+// //                } catch (e: Exception) {
+// //                    println("[Control Socket] INNER ERROR WRITING: $e")
+// //                    outputStream.write("${e}")
+// //                    e.printStackTrace()
+// //                }
+// //
+// //            }
 //        } catch (e: Exception) {
 //            println("[Control Socket] ERROR: $e")
 //            e.printStackTrace()
@@ -311,7 +313,6 @@ class ControlServer :
 //        println("[Control Socket] Done Serving")
 //        sock.close()
     }
-
 }
 
 fun createControlSocket() {

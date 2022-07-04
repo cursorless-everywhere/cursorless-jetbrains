@@ -13,10 +13,9 @@ class VSCodeSelection {
     var start: VSCodePosition? = null
     var end: VSCodePosition? = null
 
-
     fun toCaretState(): CaretState = CaretState(
         active?.toLogicalPosition(),
         start?.toLogicalPosition(),
-        end?.toLogicalPosition(),
+        end?.toLogicalPosition()
     )
 }

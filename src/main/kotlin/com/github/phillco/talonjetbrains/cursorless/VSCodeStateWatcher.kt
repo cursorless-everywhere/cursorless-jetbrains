@@ -1,6 +1,5 @@
 package com.github.phillco.talonjetbrains.cursorless
 
-import com.intellij.openapi.editor.Editor
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
 import org.slf4j.helpers.NOPLogger
@@ -17,7 +16,7 @@ class VSCodeStateWatcher() {
 
         this.watcher = DirectoryWatcher.builder()
             .path(Path.of(VS_CODE_STATE)) // or use paths(directoriesToWatch)
-            .logger( NOPLogger.NOP_LOGGER)
+            .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
                 println("PHIL: VS Code state changed:" + event)
             }

@@ -6,10 +6,9 @@ import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.talon.createControlSocket
 import com.intellij.ide.AppLifecycleListener
 import com.intellij.openapi.project.Project
-import java.net.StandardProtocolFamily
 import kotlin.concurrent.thread
 
-var watcher: VSCodeStateWatcher? = null;
+var watcher: VSCodeStateWatcher? = null
 
 class TalonAppLifecycleListener : AppLifecycleListener {
     override fun appFrameCreated(commandLineArgs: List<String>) {

@@ -17,7 +17,7 @@ data class VSCodeCommand(
     val command: String,
     val commandId: String? = null,
     val commandArgs: List<String>? = null,
-    val cursorlessArgs: String? = null,
+    val cursorlessArgs: String? = null
 )
 
 fun sendCommand(command: VSCodeCommand): String? {
@@ -27,7 +27,7 @@ fun sendCommand(command: VSCodeCommand): String? {
     val sock = AFUNIXSocket.newInstance()
     val address = AFUNIXSocketAddress.of(socketFile)
     sock.connect(address)
-    var resp: String? = null;
+    var resp: String? = null
     try {
         sock.inputStream.bufferedReader().use { inputStream ->
             sock.outputStream.bufferedWriter().use { outputStream ->
@@ -45,9 +45,8 @@ fun sendCommand(command: VSCodeCommand): String? {
             }
         }
 //        }
-    }
-    catch (e: IOException) {
+    } catch (e: IOException) {
         e.printStackTrace()
-        return "Error: ${e}"
+        return "Error: $e"
     }
 }

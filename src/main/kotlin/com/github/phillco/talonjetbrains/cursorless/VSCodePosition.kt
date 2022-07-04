@@ -1,6 +1,5 @@
 package com.github.phillco.talonjetbrains.cursorless
 
-import com.intellij.openapi.editor.CaretState
 import com.intellij.openapi.editor.LogicalPosition
 import kotlinx.serialization.Serializable
 

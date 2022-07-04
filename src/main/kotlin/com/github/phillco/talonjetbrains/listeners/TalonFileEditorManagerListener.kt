@@ -1,8 +1,11 @@
 package com.github.phillco.talonjetbrains.listeners
 
 import com.github.phillco.talonjetbrains.sync.markEditorChange
-import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
-import com.intellij.openapi.fileEditor.*
+import com.intellij.openapi.fileEditor.FileEditor
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.fileEditor.FileEditorProvider
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vfs.VirtualFile
 

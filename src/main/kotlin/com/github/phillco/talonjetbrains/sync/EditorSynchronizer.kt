@@ -13,24 +13,16 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
-import com.jetbrains.rd.util.use
 import io.sentry.Sentry
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.newsclub.net.unix.AFUNIXServerSocket
-import org.newsclub.net.unix.AFUNIXSocket
-import org.newsclub.net.unix.AFUNIXSocketAddress
 import java.awt.Point
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.io.File
-import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
-
 
 // https://github.com/Kotlin/kotlinx.serialization/issues/993
 
@@ -43,7 +35,7 @@ data class OverallState(
     val ideVersion: String,
     val pluginVersion: String?,
     val activeEditor: EditorState?,
-    val allEditors: List<FileEditorState>?,
+    val allEditors: List<FileEditorState>?
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -56,7 +48,7 @@ data class EditorState(
     val lastVisibleLine: Int,
 
     val cursors: List<Cursor>,
-    val selections: List<Selection>,
+    val selections: List<Selection>
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -65,7 +57,7 @@ data class FileEditorState(
     val path: String?,
     val name: String?,
     val isModified: Boolean,
-    val isValid: Boolean,
+    val isValid: Boolean
 //    val project: ProjectState,
 )
 
@@ -74,21 +66,21 @@ data class FileEditorState(
 data class ProjectState(
     val name: String,
     val basePath: String?,
-    val repos: List<RepoState>,
+    val repos: List<RepoState>
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class RepoState(
     val root: String,
-    val vcsType: String,
+    val vcsType: String
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class Cursor(
     val line: Int,
-    val column: Int,
+    val column: Int
 )
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -100,7 +92,7 @@ data class Selection(
 
     // NOTE(pcohen): these are provided for convenience for VS Code
     val active: Cursor?,
-    val anchor: Cursor?,
+    val anchor: Cursor?
 )
 
 // TODO(pcohen): can we put these directly on the data classes?
@@ -127,17 +119,15 @@ fun selectionFromCaretState(lp: CaretState): Selection {
         end,
         cursor,
         active,
-        anchor,
+        anchor
     )
 }
-
 
 var serial: Long = 0
 
 var hasShutdown = false
 
 var tempFiles = mutableMapOf<String, Path>()
-
 
 fun getProject(): Project? {
     return IdeFocusManager.findInstance().lastFocusedFrame?.project
@@ -169,12 +159,15 @@ fun serializeEditor(editor: Editor): EditorState {
     var temporaryFilePath: Path? = null
     if (currentFile != null) {
         if (!tempFiles.containsKey(currentFile)) {
-            tempFiles.put(currentFile,
-            kotlin.io.path.createTempFile("cursorless-${File(currentFile).nameWithoutExtension}-",
-            ".${File(currentFile).extension}"))
+            tempFiles.put(
+                currentFile,
+                kotlin.io.path.createTempFile(
+                    "cursorless-${File(currentFile).nameWithoutExtension}-",
+                    ".${File(currentFile).extension}"
+                )
+            )
         }
         temporaryFilePath = tempFiles.get(currentFile)
-
 
         Files.writeString(temporaryFilePath, document.charsSequence)
     }
@@ -197,7 +190,7 @@ fun serializeEditor(editor: Editor): EditorState {
         editor.xyToLogicalPosition(Point(ve.x, ve.y)).line,
         editor.xyToLogicalPosition(Point(ve.x, ve.y + ve.height)).line,
         cursors,
-        selections,
+        selections
     )
 }
 
@@ -247,7 +240,6 @@ fun stateFilePath(): Path {
     return root.resolve("$pid.json")
 }
 
-
 fun serializeEditorStateToFile(): Path? {
     try {
         val root = Paths.get(System.getProperty("user.home"), ".jb-state")
@@ -287,7 +279,7 @@ fun serializeEditorStateToFile(): Path? {
     } catch (e: Exception) {
         e.printStackTrace()
         Sentry.captureException(e)
-        return null;
+        return null
     }
 }
 

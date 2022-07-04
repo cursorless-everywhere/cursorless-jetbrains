@@ -1,8 +1,6 @@
 package com.github.phillco.talonjetbrains.listeners
 
 import com.github.phillco.talonjetbrains.sync.markEditorChange
-import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.event.VisibleAreaEvent
 import com.intellij.openapi.editor.event.VisibleAreaListener
 

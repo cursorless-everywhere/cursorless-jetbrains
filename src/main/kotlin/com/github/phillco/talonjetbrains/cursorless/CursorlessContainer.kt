@@ -46,14 +46,14 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
             // .watchService(watchService) // defaults based on OS to either JVM WatchService or the JNA macOS WatchService
             .build()
 //
-////        this.watchThread = FileWatcher()
-////        this.watchThread.start()
-////        GlobalScope.launch {
-////            val dispatcher = this.coroutineContext
-////            CoroutineScope(dispatcher).launch {
-////                watch()
-////            }
-////        }
+// //        this.watchThread = FileWatcher()
+// //        this.watchThread.start()
+// //        GlobalScope.launch {
+// //            val dispatcher = this.coroutineContext
+// //            CoroutineScope(dispatcher).launch {
+// //                watch()
+// //            }
+// //        }
 
         watchThread = Thread {
             this.watcher.watch()
@@ -67,7 +67,6 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
         }
 
         started = true
-
     }
 //
 //    suspend fun watch() = coroutineScope {
@@ -86,7 +85,7 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 //        print("done")
 //
 //        // once you no longer need this channel, make sure you close it
-////        watchChannel.close()
+// //        watchChannel.close()
 //    }
 
     fun getHats(): HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>? {
@@ -102,7 +101,6 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
     }
 
     fun doPainting(g: Graphics) {
-
 //        val hats = Json.
 //            File(
 //                HATS_PATH)
@@ -117,41 +115,50 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 //                editor.document
 //            )!!.path
         }.forEach { filePath: String ->
-            map[filePath]!!.keys.forEach(Consumer { color: String ->
-                map[filePath]!![color]!!.forEach(Consumer { range: CursorlessRange ->
-                    val cp = editor.visualPositionToXY(
-                        editor.logicalToVisualPosition(
-                            LogicalPosition(
-                                range.start!!.line, range.start!!.character
+            map[filePath]!!.keys.forEach(
+                Consumer { color: String ->
+                    map[filePath]!![color]!!.forEach(
+                        Consumer { range: CursorlessRange ->
+                            val cp = editor.visualPositionToXY(
+                                editor.logicalToVisualPosition(
+                                    LogicalPosition(
+                                        range.start!!.line,
+                                        range.start!!.character
+                                    )
+                                )
                             )
-                        )
-                    )
-                    var jColor = JBColor.WHITE
-                    when (color) {
-                        "red" -> jColor = JBColor.RED
-                        "pink" -> jColor = JBColor(
-                            JBColor.getHSBColor(
-                                (332 / 336.0).toFloat(),
-                                .54.toFloat(),
-                                .96.toFloat()
-                            ), JBColor.getHSBColor(
-                                (332 / 336.0).toFloat(),
-                                .54.toFloat(),
-                                .96.toFloat()
+                            var jColor = JBColor.WHITE
+                            when (color) {
+                                "red" -> jColor = JBColor.RED
+                                "pink" -> jColor = JBColor(
+                                    JBColor.getHSBColor(
+                                        (332 / 336.0).toFloat(),
+                                        .54.toFloat(),
+                                        .96.toFloat()
+                                    ),
+                                    JBColor.getHSBColor(
+                                        (332 / 336.0).toFloat(),
+                                        .54.toFloat(),
+                                        .96.toFloat()
+                                    )
+                                )
+                                "yellow" -> jColor = JBColor.ORANGE
+                                "green" -> jColor = JBColor.GREEN
+                                "blue" -> jColor = JBColor.BLUE
+                                "default" -> jColor = JBColor.GRAY
+                            }
+                            g.color = jColor
+                            val size = 4
+                            g.fillOval(
+                                cp.x + 4,
+                                cp.y - size / 2 - 0,
+                                size,
+                                size
                             )
-                        )
-                        "yellow" -> jColor = JBColor.ORANGE
-                        "green" -> jColor = JBColor.GREEN
-                        "blue" -> jColor = JBColor.BLUE
-                        "default" -> jColor = JBColor.GRAY
-                    }
-                    g.color = jColor
-                    val size = 4
-                    g.fillOval(
-                        cp.x + 4, cp.y - size / 2 - 0, size, size
+                        }
                     )
-                })
-            })
+                }
+            )
         }
     }
 
@@ -164,7 +171,6 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
         }
 
         startWatching()
-
 
         if (!File(HATS_PATH).exists()) {
             println("Hatsfile doesn't exist; not withdrawing...")
