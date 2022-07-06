@@ -218,8 +218,9 @@ fun serializeOverallState(): OverallState {
     )
 }
 
-fun markEditorChange() {
+fun markEditorChange(source: String) {
     serial += 1
+    print("serial bumped to $serial ($source)")
     serializeEditorStateToFile()
 }
 

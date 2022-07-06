@@ -16,27 +16,23 @@ class TalonFileEditorManagerListener : FileEditorManagerListener {
         editors: Pair<Array<FileEditor>, Array<FileEditorProvider>>
     ) {
         super.fileOpenedSync(source, file, editors)
-        println("PHIL: file opened synchronized")
-        markEditorChange()
+        markEditorChange("file editor manager listener -> file opened sync")
     }
 
     override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
         super.fileOpened(source, file)
         // TODO(pcohen): we seem to be missing a handler on the file editing
         // in general. For example, control-backspace does not fire.
-        println("PHIL: file opened (tab opened)")
-        markEditorChange()
+        markEditorChange("file editor manager listener -> file (tab) opened")
     }
 
     override fun fileClosed(source: FileEditorManager, file: VirtualFile) {
         super.fileClosed(source, file)
-        println("PHIL: file closed (tab closed)")
-        markEditorChange()
+        markEditorChange("file editor manager listener -> file (tab) closed")
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
         super.selectionChanged(event)
-        println("PHIL: selection changed (tab switched)")
-        markEditorChange()
+        markEditorChange("file editor manager listener -> selection changed (tab switched)")
     }
 }

@@ -1,6 +1,7 @@
 package com.github.phillco.talonjetbrains.services
 
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
+import com.github.phillco.talonjetbrains.listeners.TalonSelectionListener
 import com.github.phillco.talonjetbrains.listeners.TalonVisibleAreaListener
 import com.github.phillco.talonjetbrains.sync.unlinkStateFile
 import com.intellij.openapi.Disposable
@@ -11,6 +12,7 @@ import io.sentry.Sentry
 class TalonApplicationService : Disposable {
 
     val cursorWatchers = mutableMapOf<Editor, TalonCaretListener>()
+    val selectionListeners = mutableMapOf<Editor, TalonSelectionListener>()
     val visibleAreaListeners = mutableMapOf<Editor, TalonVisibleAreaListener>()
 
     init {
@@ -36,6 +38,10 @@ class TalonApplicationService : Disposable {
         val cw = TalonCaretListener()
         e.caretModel.addCaretListener(cw)
         cursorWatchers[e] = cw
+
+        val sl = TalonSelectionListener()
+        e.selectionModel.addSelectionListener(sl)
+        selectionListeners[e] = sl
 
         val visibleAreaListener = TalonVisibleAreaListener()
         e.scrollingModel.addVisibleAreaListener(visibleAreaListener)
@@ -64,7 +70,9 @@ class TalonApplicationService : Disposable {
         println("PHIL: disposing")
         unlinkStateFile()
 
-        cursorWatchers.forEach { t, u -> t.caretModel.removeCaretListener(u) }
-        visibleAreaListeners.forEach { t, u -> t.scrollingModel.removeVisibleAreaListener { u } }
+        println("PHIL: unhooking listeners")
+        cursorWatchers.forEach { (e, l) -> e.caretModel.removeCaretListener(l) }
+        selectionListeners.forEach { (e, l) -> e.selectionModel.removeSelectionListener(l)}
+        visibleAreaListeners.forEach { (e, l) -> e.scrollingModel.removeVisibleAreaListener { l } }
     }
 }

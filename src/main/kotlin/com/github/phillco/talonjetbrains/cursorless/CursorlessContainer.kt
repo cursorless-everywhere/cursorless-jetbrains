@@ -38,7 +38,7 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
             .path(Path.of(HATS_PATH)) // or use paths(directoriesToWatch)
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
-                println("PHIL: " + event)
+//                println("PHIL: " + event)
                 this.invalidate()
                 this.repaint()
             } // .fileHashing(false) // defaults to true

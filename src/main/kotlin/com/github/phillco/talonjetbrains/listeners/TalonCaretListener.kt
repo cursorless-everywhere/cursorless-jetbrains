@@ -8,19 +8,20 @@ import com.intellij.openapi.editor.event.CaretListener
 class TalonCaretListener : CaretListener, Disposable {
     override fun caretPositionChanged(event: CaretEvent) {
         super.caretPositionChanged(event)
-        markEditorChange()
+        markEditorChange("caret listener -> caret changed")
     }
 
+    // TODO(pcohen):
     override fun dispose() {
     }
 
     override fun caretAdded(event: CaretEvent) {
         super.caretAdded(event)
-        markEditorChange()
+        markEditorChange("caret listener -> caret added")
     }
 
     override fun caretRemoved(event: CaretEvent) {
         super.caretRemoved(event)
-        markEditorChange()
+        markEditorChange("caret listener -> caret removed")
     }
 }

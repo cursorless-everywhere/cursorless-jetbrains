@@ -6,9 +6,6 @@ import com.intellij.openapi.editor.event.VisibleAreaListener
 
 class TalonVisibleAreaListener : VisibleAreaListener {
     override fun visibleAreaChanged(e: VisibleAreaEvent) {
-//        TODO("Not yet implemented")
-        println("PHIL: scroll!")
-
-        markEditorChange()
+        markEditorChange("visible area listener -> visible area changed")
     }
 }
