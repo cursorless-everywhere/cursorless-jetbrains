@@ -256,11 +256,23 @@ fun serializeEditorStateToFile(): Path? {
         Files.createDirectories(root)
         val json = Json.encodeToString(state)
         Files.writeString(path, json)
+
+        // Create an alias to the current product, for simplicity when debugging on the command line.
+        Files.writeString(
+            root.resolve("${ApplicationNamesInfo.getInstance().fullProductName}.pid"),
+            "${ProcessHandle.current().pid()}"
+        )
+        Files.writeString(
+            root.resolve("latest.pid"),
+            "${ProcessHandle.current().pid()}"
+        )
+
+        // NOTE(pcohen): deprecate these
+        Files.writeString(root.resolve("latest.json"), json)
         Files.writeString(
             root.resolve("${ApplicationNamesInfo.getInstance().fullProductName}.json"),
             json
         )
-        Files.writeString(root.resolve("latest.json"), json)
 
         // TODO(pcohen): only write this when debugging
 //        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
