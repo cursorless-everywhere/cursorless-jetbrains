@@ -5,6 +5,7 @@ import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
 import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
+import com.github.phillco.talonjetbrains.sync.serializeOverallState
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
@@ -69,10 +70,16 @@ data class CursorlessResponse(
     val error: String? = null
 )
 
+private val json = Json { isLenient = true }
+
 fun dispatch(command: Command): CommandResponse {
     return when (command.command) {
         "ping" -> CommandResponse("pong")
         "hi" -> CommandResponse("bye")
+        "state" -> {
+            val state = serializeOverallState()
+            CommandResponse(json.encodeToString(state))
+        }
         "serializeState" -> {
             var path: Path? = null
             ApplicationManager.getApplication().invokeAndWait {
