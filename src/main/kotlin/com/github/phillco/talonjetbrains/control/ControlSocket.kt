@@ -6,6 +6,9 @@ import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
@@ -67,6 +70,7 @@ data class CursorlessResponse(
     val oldState: VSCodeState? = null,
     val newState: VSCodeState? = null,
     val commandResult: String? = null,
+    val commandException: String? = null,
     val error: String? = null
 )
 
@@ -103,6 +107,10 @@ fun dispatch(command: Command): CommandResponse {
 }
 
 fun cursorless(command: Command): String? {
+    // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
+    // fixed chaining since this doesn't actually block on Cursorless applying the changes.
+    val preSyncResult: String? = sendCommand(VSCodeCommand("applyPrimaryEditorState"))
+
     val command = VSCodeCommand(
         "cursorless",
         null,
@@ -112,16 +120,28 @@ fun cursorless(command: Command): String? {
 
     val resultString: String? = sendCommand(command)
     val format = Json { isLenient = true }
-    val state = format.decodeFromString<CursorlessResponse>(
+    val response = format.decodeFromString<CursorlessResponse>(
         resultString!!
     )
 
-    if (state.error != null) {
-        throw RuntimeException(state.error)
+    if (response.error != null) {
+        throw RuntimeException(response.error)
+    }
+
+    if (response.commandException != null) {
+        Notifications.Bus.notify(
+            Notification(
+                "talon",
+                "Cursorless error",
+                response.commandException,
+                NotificationType.ERROR
+            )
+        )
+        return "Cursorless error: ${response.commandException}"
     }
 
     ApplicationManager.getApplication().invokeAndWait {
-        val newContents = File(state.newState!!.contentsPath!!).readText()
+        val newContents = File(response.newState!!.contentsPath!!).readText()
 
         val isWrite = newContents != getEditor()?.document!!.text
 
@@ -135,7 +155,7 @@ fun cursorless(command: Command): String? {
                         {
                             getEditor()?.document?.setText(newContents)
                             getEditor()?.caretModel?.caretsAndSelections =
-                                state.newState.cursors.map { it.toCaretState() }
+                                response.newState.cursors.map { it.toCaretState() }
                         },
                         "Insert",
                         "insertGroup"
@@ -148,7 +168,7 @@ fun cursorless(command: Command): String? {
                         getEditor()!!.project,
                         {
                             getEditor()?.caretModel?.caretsAndSelections =
-                                state.newState.cursors.map { it.toCaretState() }
+                                response.newState.cursors.map { it.toCaretState() }
                         },
                         "Insert",
                         "insertGroup"
@@ -161,9 +181,10 @@ fun cursorless(command: Command): String? {
 
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
     // fixed chaining since this doesn't actually block on Cursorless applying the changes.
-    val syncResult: String? = sendCommand(VSCodeCommand("applyPrimaryEditorState"))
+    val postSyncResult: String? =
+        sendCommand(VSCodeCommand("applyPrimaryEditorState"))
 
-    return "$resultString $syncResult"
+    return "$preSyncResult $resultString $postSyncResult"
 }
 
 fun outreach(command: Command): String? {
