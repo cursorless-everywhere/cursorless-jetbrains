@@ -1,9 +1,3 @@
-- Size hats according to font size
-- why aren't there hats in this file
-
-Sometimes hats get lost:
-
-```
 package com.github.phillco.talonjetbrains.listeners
 
 import com.github.phillco.talonjetbrains.sync.markEditorChange
@@ -17,4 +11,3 @@ class TalonDocumentListener : DocumentListener {
 
     }
 }
-```

@@ -1,6 +1,7 @@
 package com.github.phillco.talonjetbrains.services
 
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
+import com.github.phillco.talonjetbrains.listeners.TalonDocumentListener
 import com.github.phillco.talonjetbrains.listeners.TalonSelectionListener
 import com.github.phillco.talonjetbrains.listeners.TalonVisibleAreaListener
 import com.github.phillco.talonjetbrains.sync.unlinkStateFile
@@ -14,6 +15,7 @@ class TalonApplicationService : Disposable {
     val cursorWatchers = mutableMapOf<Editor, TalonCaretListener>()
     val selectionListeners = mutableMapOf<Editor, TalonSelectionListener>()
     val visibleAreaListeners = mutableMapOf<Editor, TalonVisibleAreaListener>()
+    val documentListeners = mutableMapOf<Editor, TalonDocumentListener>()
 
     init {
         println("phil: application service in it 2")
@@ -46,6 +48,11 @@ class TalonApplicationService : Disposable {
         val visibleAreaListener = TalonVisibleAreaListener()
         e.scrollingModel.addVisibleAreaListener(visibleAreaListener)
         visibleAreaListeners[e] = visibleAreaListener
+
+        val dl = TalonDocumentListener()
+        e.document.addDocumentListener(dl)
+        documentListeners[e] = dl
+
     }
 
     fun rebindListeners() {
@@ -73,6 +80,7 @@ class TalonApplicationService : Disposable {
         println("PHIL: unhooking listeners")
         cursorWatchers.forEach { (e, l) -> e.caretModel.removeCaretListener(l) }
         selectionListeners.forEach { (e, l) -> e.selectionModel.removeSelectionListener(l)}
-        visibleAreaListeners.forEach { (e, l) -> e.scrollingModel.removeVisibleAreaListener { l } }
+        visibleAreaListeners.forEach { (e, l) -> e.scrollingModel.removeVisibleAreaListener(l) }
+        documentListeners.forEach { (e, l) -> e.document.removeDocumentListener(l) }
     }
 }
