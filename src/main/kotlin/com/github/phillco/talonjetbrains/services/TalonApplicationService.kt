@@ -52,7 +52,6 @@ class TalonApplicationService : Disposable {
         val dl = TalonDocumentListener()
         e.document.addDocumentListener(dl)
         documentListeners[e] = dl
-
     }
 
     fun rebindListeners() {
@@ -79,7 +78,7 @@ class TalonApplicationService : Disposable {
 
         println("PHIL: unhooking listeners")
         cursorWatchers.forEach { (e, l) -> e.caretModel.removeCaretListener(l) }
-        selectionListeners.forEach { (e, l) -> e.selectionModel.removeSelectionListener(l)}
+        selectionListeners.forEach { (e, l) -> e.selectionModel.removeSelectionListener(l) }
         visibleAreaListeners.forEach { (e, l) -> e.scrollingModel.removeVisibleAreaListener(l) }
         documentListeners.forEach { (e, l) -> e.document.removeDocumentListener(l) }
     }

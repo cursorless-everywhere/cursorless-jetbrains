@@ -14,6 +14,5 @@ class TalonSelectionListener : SelectionListener, Disposable {
 
     // TODO(pcohen):
     override fun dispose() {
-
     }
 }
