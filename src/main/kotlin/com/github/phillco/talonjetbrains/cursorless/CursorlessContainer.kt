@@ -1,7 +1,9 @@
 package com.github.phillco.talonjetbrains.cursorless
 
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
+import com.github.phillco.talonjetbrains.sync.tempFilesInverted
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.ui.JBColor
 import groovy.json.JsonException
 import io.methvin.watcher.DirectoryChangeEvent
@@ -13,6 +15,7 @@ import org.slf4j.helpers.NOPLogger
 import java.awt.Graphics
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.function.Consumer
 import javax.swing.JComponent
@@ -133,10 +136,11 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
 //        println("Redrawing...")
         map.keys.stream().filter { filePath: String ->
-            true
-//            filePath == FileDocumentManager.getInstance().getFile(
-//                editor.document
-//            )!!.path
+            // Only render if it's the current file.
+            val path = Paths.get(filePath)
+            tempFilesInverted.containsKey(path) && tempFilesInverted[path] == FileDocumentManager.getInstance().getFile(
+                editor.document
+            )!!.path
         }.forEach { filePath: String ->
           val a = editor.offsetToLogicalPosition(1)
             map[filePath]!!.keys.forEach(

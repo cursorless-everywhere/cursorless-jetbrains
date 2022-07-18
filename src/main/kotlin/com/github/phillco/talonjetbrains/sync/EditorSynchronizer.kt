@@ -128,6 +128,7 @@ var serial: Long = 0
 var hasShutdown = false
 
 var tempFiles = mutableMapOf<String, Path>()
+var tempFilesInverted = mutableMapOf<Path, String>()
 
 fun getProject(): Project? {
     return IdeFocusManager.findInstance().lastFocusedFrame?.project
@@ -159,13 +160,15 @@ fun serializeEditor(editor: Editor): EditorState {
     var temporaryFilePath: Path? = null
     if (currentFile != null) {
         if (!tempFiles.containsKey(currentFile)) {
+            val tf = kotlin.io.path.createTempFile(
+                "cursorless-${File(currentFile).nameWithoutExtension}-",
+                ".${File(currentFile).extension}"
+            )
             tempFiles.put(
                 currentFile,
-                kotlin.io.path.createTempFile(
-                    "cursorless-${File(currentFile).nameWithoutExtension}-",
-                    ".${File(currentFile).extension}"
-                )
+                tf
             )
+            tempFilesInverted.put(tf, currentFile)
         }
         temporaryFilePath = tempFiles.get(currentFile)
 
