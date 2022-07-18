@@ -6,9 +6,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 
+var containers = ArrayList<CursorlessContainer>()
+
 class TalonEditorFactoryListener : EditorFactoryListener {
 
-    var containers = ArrayList<CursorlessContainer>()
 
     init {
         println("phil: listener scope")
@@ -28,3 +29,5 @@ class TalonEditorFactoryListener : EditorFactoryListener {
         super.editorReleased(event)
     }
 }
+
+fun getCursorlessContainers() = containers

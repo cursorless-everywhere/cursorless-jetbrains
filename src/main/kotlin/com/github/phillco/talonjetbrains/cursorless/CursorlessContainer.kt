@@ -13,15 +13,20 @@ import org.slf4j.helpers.NOPLogger
 import java.awt.Graphics
 import java.io.File
 import java.nio.file.Path
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.function.Consumer
 import javax.swing.JComponent
 
-class CursorlessContainer(private val editor: Editor) : JComponent() {
+class CursorlessContainer(val editor: Editor) : JComponent() {
     private var watcher: DirectoryWatcher
     private var watchThread: Thread
     private val parent: JComponent
 
+
     private var started = false
+
+    private val localOffsets = ConcurrentLinkedQueue<
+            Pair<Int, Int>>()
 
 //    val log = Logger
 
@@ -38,6 +43,7 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
 //                println("PHIL: " + event)
+                localOffsets.clear()
                 this.invalidate()
                 this.repaint()
             } // .fileHashing(false) // defaults to true
@@ -58,6 +64,21 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
             this.watcher.watch()
         }
         watchThread.start()
+    }
+
+    /**
+     * Records a "local offset" (a change to the document that's created before
+     * VS Code has had time to generate new hats from that edit).
+     *
+     * This is just to make hats a little look bit less janky as the user performs edits. It's pretty fragile
+     * because we don't handle overlapping requests well (the hats file isn't associated with local serial,
+     * so we will load old hats if the user is making a large series of changes)
+     */
+    fun addLocalOffset(startOffset: Int, sizeDelta: Int) {
+        localOffsets += Pair(startOffset, sizeDelta)
+        println("localOffsets = ${localOffsets}")
+        this.invalidate()
+        this.repaint()
     }
 
     fun startWatching() {
@@ -122,13 +143,33 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
                 Consumer { color: String ->
                     map[filePath]!![color]!!.forEach(
                         Consumer { range: CursorlessRange ->
-                            // NOTE(pcohen): use offsets so we don't have to worry about tabs, etc
-                            val lp = editor.offsetToLogicalPosition(range.startOffset!!)
+                            // NOTE(pcohen): use offsets so we handle tabs properly
+                            var offset = range.startOffset!!
+
+                            // NOTE(pcohen): this was an attempt to make hats on subsequent lines a bit less janky
+                            // When local edits are performed (use the line number, and then try to figure out the character offset)
+//                            val startOfLineOffset = editor.logicalPositionToOffset(
+//                                LogicalPosition(range.start!!.line, 0)
+//                            )
+//                            var offset = startOfLineOffset + range.start!!.character
+
+                            var affectedByLocalOffsets = false
+                            localOffsets.forEach { pair ->
+                                if (offset >= pair.first) {
+                                    println("adjusting $offset to ${offset + pair.second} due to local offset: ${localOffsets}")
+                                    offset += pair.second
+                                    affectedByLocalOffsets = true
+                                }
+                            }
+
+
+                            val lp = editor.offsetToLogicalPosition(offset)
                             val cp = editor.visualPositionToXY(
                                 editor.logicalToVisualPosition(
                                     lp
                                 )
                             )
+
                             var jColor = JBColor.WHITE
                             when (color) {
                                 "red" -> jColor = JBColor.RED
@@ -149,7 +190,20 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
                                 "blue" -> jColor = JBColor.BLUE
                                 "default" -> jColor = JBColor.GRAY
                             }
+
+                            /*
+                            // NOTE(pcohen): these seem to break colored hats
+                            val alpha = if(affectedByLocalOffsets) 0.5 else 0.85
+                            val light = jColor!!
+                            val dark = jColor.darkVariant
+
+                            val jColorWithAlpha = JBColor(
+                                Color(light.red, light.green, light.blue, (255.0 * alpha).toInt()),
+                            )
+                             */
+
                             g.color = jColor
+
                             val size = 4
                             g.fillOval(
                                 cp.x + 4,
