@@ -31,37 +31,24 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     private val localOffsets = ConcurrentLinkedQueue<
             Pair<Int, Int>>()
 
-//    val log = Logger
 
     init {
         this.parent = editor.contentComponent
         this.parent.add(this)
         this.bounds = parent.bounds
         isVisible = true
-//        log.info("hi")
-        println("cursorless container initialized!")
+        println("Cursorless container initialized for editor $editor!")
 
         this.watcher = DirectoryWatcher.builder()
             .path(Path.of(HATS_PATH)) // or use paths(directoriesToWatch)
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
-//                println("PHIL: " + event)
                 localOffsets.clear()
                 this.invalidate()
                 this.repaint()
-            } // .fileHashing(false) // defaults to true
-            // .logger(logger) // defaults to LoggerFactory.getLogger(DirectoryWatcher.class)
-            // .watchService(watchService) // defaults based on OS to either JVM WatchService or the JNA macOS WatchService
+            }
             .build()
-//
-// //        this.watchThread = FileWatcher()
-// //        this.watchThread.start()
-// //        GlobalScope.launch {
-// //            val dispatcher = this.coroutineContext
-// //            CoroutineScope(dispatcher).launch {
-// //                watch()
-// //            }
-// //        }
+
 
         watchThread = Thread {
             this.watcher.watch()
@@ -91,25 +78,6 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
         started = true
     }
-//
-//    suspend fun watch() = coroutineScope {
-//        val currentDirectory = File("/Users/phillco/.jb-state/")
-//
-//        print("starting to watch!")
-//
-//        val watchChannel = currentDirectory.asWatchChannel()
-//
-//        launch {
-//            watchChannel.consumeEach { event ->
-//                // do something with event
-//                print("file changed! ${event}")
-//            }
-//        }
-//        print("done")
-//
-//        // once you no longer need this channel, make sure you close it
-// //        watchChannel.close()
-//    }
 
     fun getHats(): HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>? {
         try {
@@ -127,11 +95,6 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     }
 
     fun doPainting(g: Graphics) {
-//        val hats = Json.
-//            File(
-//                HATS_PATH)
-//        )
-
         val map = getHats() ?: return
 
 //        println("Redrawing...")
@@ -240,24 +203,6 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         if (!isActiveCursorlessEditor()) {
             return
         }
-
-//        g.setColor(JBColor.BLUE);
-//        g.drawRect(100, 100, 500, 500);
-//
-//        g.setColor(JBColor.RED);
-//        Point p = editor.visualPositionToXY(editor.getCaretModel().getVisualPosition());
-//        g.drawOval(p.x, p.y, 20 - 10, 20 - 10);
-//
-//        Point p2 = editor.visualPositionToXY(editor.logicalToVisualPosition(new LogicalPosition(9, 1)));
-//        g.setColor(JBColor.GREEN);
-//        g.drawOval(p2.x, p2.y, 20 - 10, 20 - 10);
-//        val objectMapper = ObjectMapper()nhl
-//        val typeRef: TypeReference<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>> =
-//            object :
-//                TypeReference<HashMap<String?, HashMap<String?, ArrayList<CursorlessRange?>?>?>?>() {}
-
-//        val mapper = jacksonObjectMapper()
-//        mapper.registerKotlinModule()
 
         try {
             doPainting(g)
