@@ -2,7 +2,6 @@ package com.github.phillco.talonjetbrains.cursorless
 
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.ui.JBColor
 import groovy.json.JsonException
 import io.methvin.watcher.DirectoryChangeEvent
@@ -118,16 +117,16 @@ class CursorlessContainer(private val editor: Editor) : JComponent() {
 //                editor.document
 //            )!!.path
         }.forEach { filePath: String ->
+          val a = editor.offsetToLogicalPosition(1)
             map[filePath]!!.keys.forEach(
                 Consumer { color: String ->
                     map[filePath]!![color]!!.forEach(
                         Consumer { range: CursorlessRange ->
+                            // NOTE(pcohen): use offsets so we don't have to worry about tabs, etc
+                            val lp = editor.offsetToLogicalPosition(range.startOffset!!)
                             val cp = editor.visualPositionToXY(
                                 editor.logicalToVisualPosition(
-                                    LogicalPosition(
-                                        range.start!!.line,
-                                        range.start!!.character
-                                    )
+                                    lp
                                 )
                             )
                             var jColor = JBColor.WHITE

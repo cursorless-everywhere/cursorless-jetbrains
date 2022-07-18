@@ -8,4 +8,6 @@ class CursorlessRange {
     // TODO: move to CursorlessRange2
     var start: VSCodePosition? = null
     var end: VSCodePosition? = null
+    var startOffset: Int? = null
+    var endOffset: Int? = null
 }
