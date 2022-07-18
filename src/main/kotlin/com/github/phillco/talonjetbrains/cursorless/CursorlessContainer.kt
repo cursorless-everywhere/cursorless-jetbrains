@@ -19,6 +19,8 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.function.Consumer
 import javax.swing.JComponent
 
+typealias HatsFormat = HashMap<String, ArrayList<CursorlessRange>>
+
 class CursorlessContainer(val editor: Editor) : JComponent() {
     private var watcher: DirectoryWatcher
     private var watchThread: Thread
@@ -73,7 +75,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         started = true
     }
 
-    fun getHats(): HashMap<String, ArrayList<CursorlessRange>>? {
+    fun getHats(): HatsFormat? {
         try {
             val format = Json { isLenient = true }
 
@@ -102,60 +104,55 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         }
     }
 
-    fun doPainting(g: Graphics) {
-        val mapping = getHats() ?: return
+    fun renderForColor(g: Graphics, mapping: HatsFormat, colorName: String) {
+        mapping[colorName]!!.forEach(
+            Consumer { range: CursorlessRange ->
+                // NOTE(pcohen): use offsets so we handle tabs properly
+                var offset = range.startOffset!!
 
-//        println("Redrawing...")
-        mapping.keys.forEach(
-            Consumer { color: String ->
-                mapping[color]!!.forEach(
-                    Consumer { range: CursorlessRange ->
-                        // NOTE(pcohen): use offsets so we handle tabs properly
-                        var offset = range.startOffset!!
-
-                        // NOTE(pcohen): this was an attempt to make hats on subsequent lines a bit less janky
-                        // When local edits are performed (use the line number, and then try to figure out the character offset)
+                // NOTE(pcohen): this was an attempt to make hats on subsequent lines a bit less janky
+                // When local edits are performed (use the line number, and then try to figure out the character offset)
 //                            val startOfLineOffset = editor.logicalPositionToOffset(
 //                                LogicalPosition(range.start!!.line, 0)
 //                            )
 //                            var offset = startOfLineOffset + range.start!!.character
 
-                        var affectedByLocalOffsets = false
-                        localOffsets.forEach { pair ->
-                            if (offset >= pair.first) {
-                                println("adjusting $offset to ${offset + pair.second} due to local offset: $localOffsets")
-                                offset += pair.second
-                                affectedByLocalOffsets = true
-                            }
-                        }
+                var affectedByLocalOffsets = false
+                localOffsets.forEach { pair ->
+                    if (offset >= pair.first) {
+                        println("adjusting $offset to ${offset + pair.second} due to local offset: $localOffsets")
+                        offset += pair.second
+                        affectedByLocalOffsets = true
+                    }
+                }
 
-                        val lp = editor.offsetToLogicalPosition(offset)
-                        val cp = editor.visualPositionToXY(
-                            editor.logicalToVisualPosition(
-                                lp
-                            )
+                val lp = editor.offsetToLogicalPosition(offset)
+                val cp = editor.visualPositionToXY(
+                    editor.logicalToVisualPosition(
+                        lp
+                    )
+                )
+
+                var jColor = JBColor.WHITE
+                when (colorName) {
+                    "red" -> jColor = JBColor.RED
+                    "pink" -> jColor = JBColor(
+                        JBColor.getHSBColor(
+                            (332 / 336.0).toFloat(),
+                            .54.toFloat(),
+                            .96.toFloat()
+                        ),
+                        JBColor.getHSBColor(
+                            (332 / 336.0).toFloat(),
+                            .54.toFloat(),
+                            .96.toFloat()
                         )
-
-                        var jColor = JBColor.WHITE
-                        when (color) {
-                            "red" -> jColor = JBColor.RED
-                            "pink" -> jColor = JBColor(
-                                JBColor.getHSBColor(
-                                    (332 / 336.0).toFloat(),
-                                    .54.toFloat(),
-                                    .96.toFloat()
-                                ),
-                                JBColor.getHSBColor(
-                                    (332 / 336.0).toFloat(),
-                                    .54.toFloat(),
-                                    .96.toFloat()
-                                )
-                            )
-                            "yellow" -> jColor = JBColor.ORANGE
-                            "green" -> jColor = JBColor.GREEN
-                            "blue" -> jColor = JBColor.BLUE
-                            "default" -> jColor = JBColor.GRAY
-                        }
+                    )
+                    "yellow" -> jColor = JBColor.ORANGE
+                    "green" -> jColor = JBColor.GREEN
+                    "blue" -> jColor = JBColor.BLUE
+                    "default" -> jColor = JBColor.GRAY
+                }
 
                 /*
                 // NOTE(pcohen): these seem to break colored hats
@@ -168,15 +165,22 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                 )
                  */
 
-                        g.color = jColor
+                g.color = jColor
 
-                        val size = 4
-                        g.fillOval(
-                            cp.x + 4, cp.y - size / 2 - 0, size, size
-                        )
-                    }
+                val size = 4
+                g.fillOval(
+                    cp.x + 4, cp.y - size / 2 - 0, size, size
                 )
             }
+        )
+    }
+
+    fun doPainting(g: Graphics) {
+        val mapping = getHats() ?: return
+
+//        println("Redrawing...")
+        mapping.keys.forEach(
+            Consumer { color: String -> renderForColor(g, mapping, color) }
         )
     }
 
