@@ -73,13 +73,27 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         started = true
     }
 
-    fun getHats(): HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>? {
+    fun getHats(): HashMap<String, ArrayList<CursorlessRange>>? {
         try {
             val format = Json { isLenient = true }
 
-            return format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(
+            val map = format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(
                 File(HATS_PATH).readText()
             )
+
+            val ourPath =
+                FileDocumentManager.getInstance().getFile(editor.document)!!.path
+
+            if (!tempFiles.containsKey(ourPath)) {
+                return null
+            }
+
+            val ourTemporaryPath = tempFiles[ourPath]!!.toAbsolutePath().toString()
+            if (!map.containsKey(ourTemporaryPath)) {
+                return null
+            }
+
+            return map[ourTemporaryPath]!!
         } catch (e: JsonException) {
             return null
         } catch (e: Exception) {
@@ -89,23 +103,9 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     }
 
     fun doPainting(g: Graphics) {
-        val map = getHats() ?: return
+        val mapping = getHats() ?: return
 
 //        println("Redrawing...")
-
-        val ourPath =
-            FileDocumentManager.getInstance().getFile(editor.document)!!.path
-
-        if (!tempFiles.containsKey(ourPath)) {
-            return
-        }
-
-        val ourTemporaryPath = tempFiles[ourPath]!!.toAbsolutePath().toString()
-        if (!map.containsKey(ourTemporaryPath)) {
-            return
-        }
-
-        val mapping = map[ourTemporaryPath]!!
         mapping.keys.forEach(
             Consumer { color: String ->
                 mapping[color]!!.forEach(
