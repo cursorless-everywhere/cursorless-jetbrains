@@ -50,7 +50,7 @@ val DEFAULT_COLORS = mapOf(
 class CursorlessContainer(val editor: Editor) : JComponent() {
     private var watcher: DirectoryWatcher
     private var watchThread: Thread
-    private val parent: JComponent
+    private val parent: JComponent = editor.contentComponent
 
     private var started = false
 
@@ -59,7 +59,6 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     private var colors = DEFAULT_COLORS
 
     init {
-        this.parent = editor.contentComponent
         this.parent.add(this)
         this.bounds = parent.bounds
         isVisible = true
@@ -166,6 +165,19 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         }
     }
 
+    fun colorForName(colorName: String): JBColor {
+        val lightColor = this.colors["light"]?.get(colorName)
+        val darkColor = this.colors["dark"]?.get(colorName)
+
+        if (lightColor == null || darkColor == null) {
+            throw RuntimeException("Missing color for $colorName")
+        }
+
+        return JBColor(
+            Color.decode(lightColor), Color.decode(darkColor)
+        )
+    }
+
     fun renderForColor(g: Graphics, mapping: HatsFormat, colorName: String) {
         mapping[colorName]!!.forEach { range: CursorlessRange ->
             // NOTE(pcohen): use offsets so we handle tabs properly
@@ -188,22 +200,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             }
 
             val lp = editor.offsetToLogicalPosition(offset)
-            val cp = editor.visualPositionToXY(
-                editor.logicalToVisualPosition(
-                    lp
-                )
-            )
-
-            val lightColor = this.colors["light"]?.get(colorName)
-            val darkColor = this.colors["dark"]?.get(colorName)
-
-            if (lightColor == null || darkColor == null) {
-                throw RuntimeException("Missing color for $colorName")
-            }
-
-            val jColor = JBColor(
-                Color.decode(lightColor), Color.decode(darkColor)
-            )
+            val cp = editor.visualPositionToXY(editor.logicalToVisualPosition(lp))
 
             /*
             // NOTE(pcohen): these seem to break colored hats
@@ -216,7 +213,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             )
              */
 
-            g.color = jColor
+            g.color = this.colorForName(colorName)
 
             val size = 4
             g.fillOval(
