@@ -5,6 +5,7 @@ import com.github.phillco.talonjetbrains.sync.tempFiles
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.ui.JBColor
+import com.intellij.util.io.readText
 import groovy.json.JsonException
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
@@ -12,13 +13,39 @@ import io.sentry.Sentry
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.slf4j.helpers.NOPLogger
+import java.awt.Color
 import java.awt.Graphics
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.swing.JComponent
 
 typealias HatsFormat = HashMap<String, ArrayList<CursorlessRange>>
+typealias ColorsFormat = HashMap<String, HashMap<String, String>>
+
+val DEFAULT_COLORS = mapOf(
+    "light" to mapOf(
+        "default" to "#757180",
+        "blue" to "#089ad3",
+        "green" to "#36B33F",
+        "red" to "#E02D28",
+        "pink" to "#e0679f",
+        "yellow" to "#edb62b",
+        "userColor1" to "#6a00ff",
+        "userColor2" to "#ffd8b1",
+    ),
+    "dark" to mapOf(
+        "default" to "#aaa7bb",
+        "blue" to "#089ad3",
+        "green" to "#36B33F",
+        "red" to "#E02D28",
+        "pink" to "#E06CAA",
+        "yellow" to "#E5C02C",
+        "userColor1" to "#6a00ff",
+        "userColor2" to "#ffd8b1",
+    )
+)
 
 class CursorlessContainer(val editor: Editor) : JComponent() {
     private var watcher: DirectoryWatcher
@@ -29,6 +56,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
     private val localOffsets = ConcurrentLinkedQueue<Pair<Int, Int>>()
 
+    private var colors = DEFAULT_COLORS
+
     init {
         this.parent = editor.contentComponent
         this.parent.add(this)
@@ -37,9 +66,13 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         println("Cursorless container initialized for editor $editor!")
 
         this.watcher = DirectoryWatcher.builder()
-            .path(Path.of(HATS_PATH)) // or use paths(directoriesToWatch)
+            .path(Path.of(CURSORLESS_FOLDER)) // or use paths(directoriesToWatch)
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
+                print(event)
+                if (event.path() == Paths.get(COLORS_PATH)) {
+                    this.assignColors()
+                }
                 localOffsets.clear()
                 this.invalidate()
                 this.repaint()
@@ -49,6 +82,34 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             this.watcher.watch()
         }
         watchThread.start()
+        this.assignColors()
+    }
+
+    fun assignColors() {
+        val colors = ColorsFormat()
+
+        DEFAULT_COLORS.forEach { (colorScheme, defaults) ->
+            run {
+                colors[colorScheme] = HashMap()
+                colors[colorScheme]!!.putAll(defaults)
+            }
+        }
+
+        val format = Json { isLenient = true }
+
+        // TODO(pcohen): anywhere where we parse JSON, show appropriate errors to the user
+        // if the parse fails
+        val map = format.decodeFromString<ColorsFormat>(
+            Path.of(COLORS_PATH).readText()
+        )
+
+        map.forEach { colorScheme, colorMap ->
+            colorMap.forEach { name, hex ->
+                colors[colorScheme]?.set(name, hex)
+            }
+        }
+
+        this.colors = colors
     }
 
     /**
@@ -83,9 +144,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                     File(HATS_PATH).readText()
                 )
 
-            val ourPath =
-                FileDocumentManager.getInstance()
-                    .getFile(editor.document)!!.path
+            val ourPath = FileDocumentManager.getInstance()
+                .getFile(editor.document)!!.path
 
             if (!tempFiles.containsKey(ourPath)) {
                 return null
@@ -134,26 +194,16 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                 )
             )
 
-            var jColor = JBColor.WHITE
-            when (colorName) {
-                "red" -> jColor = JBColor.RED
-                "pink" -> jColor = JBColor(
-                    JBColor.getHSBColor(
-                        (332 / 336.0).toFloat(),
-                        .54.toFloat(),
-                        .96.toFloat()
-                    ),
-                    JBColor.getHSBColor(
-                        (332 / 336.0).toFloat(),
-                        .54.toFloat(),
-                        .96.toFloat()
-                    )
-                )
-                "yellow" -> jColor = JBColor.ORANGE
-                "green" -> jColor = JBColor.GREEN
-                "blue" -> jColor = JBColor.BLUE
-                "default" -> jColor = JBColor.GRAY
+            val lightColor = this.colors["light"]?.get(colorName)
+            val darkColor = this.colors["dark"]?.get(colorName)
+
+            if (lightColor == null || darkColor == null) {
+                throw RuntimeException("Missing color for $colorName")
             }
+
+            val jColor = JBColor(
+                Color.decode(lightColor), Color.decode(darkColor)
+            )
 
             /*
             // NOTE(pcohen): these seem to break colored hats
@@ -213,7 +263,12 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     }
 
     companion object {
+        var CURSORLESS_FOLDER =
+            System.getProperty("user.home") + "/.cursorless/"
         var HATS_PATH =
             System.getProperty("user.home") + "/.cursorless/vscode-hats.json"
+
+        var COLORS_PATH =
+            System.getProperty("user.home") + "/.cursorless/colors.json"
     }
 }
