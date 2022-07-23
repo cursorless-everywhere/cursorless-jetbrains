@@ -5,9 +5,13 @@ import com.github.phillco.talonjetbrains.listeners.TalonDocumentListener
 import com.github.phillco.talonjetbrains.listeners.TalonSelectionListener
 import com.github.phillco.talonjetbrains.listeners.TalonVisibleAreaListener
 import com.github.phillco.talonjetbrains.sync.unlinkStateFile
+import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationInfo
+import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.extensions.PluginId
 import io.sentry.Sentry
 
 class TalonApplicationService : Disposable {
@@ -26,6 +30,11 @@ class TalonApplicationService : Disposable {
             // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
             options.tracesSampleRate = 1.0
+        }
+        Sentry.setTag("productName", ApplicationNamesInfo.getInstance().fullProductName)
+        Sentry.setTag("productVersion", ApplicationInfo.getInstance().fullVersion)
+        PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version?.let {
+            Sentry.setTag("pluginVersion", it )
         }
         println("phil: Sentry set up!")
 
