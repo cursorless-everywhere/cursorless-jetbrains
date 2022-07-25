@@ -68,13 +68,19 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             .path(Path.of(CURSORLESS_FOLDER)) // or use paths(directoriesToWatch)
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
-                print(event)
                 if (event.path() == Paths.get(COLORS_PATH)) {
+                    println("Colors updated ($event); re rendering...")
                     this.assignColors()
                 }
-                localOffsets.clear()
-                this.invalidate()
-                this.repaint()
+                else if (event.path() == Paths.get(HATS_PATH)) {
+                    println("Hats updated ($event); re rendering...")
+                    this.assignColors()
+                    localOffsets.clear()
+                    this.invalidate()
+                    this.repaint()
+                } else {
+                    println("Other event ($event); ignoring...")
+                }
             }.build()
 
         watchThread = Thread {
