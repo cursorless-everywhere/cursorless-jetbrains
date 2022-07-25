@@ -13,6 +13,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.extensions.PluginId
 import io.sentry.Sentry
+import java.net.InetAddress
 
 class TalonApplicationService : Disposable {
 
@@ -32,6 +33,7 @@ class TalonApplicationService : Disposable {
             options.tracesSampleRate = 1.0
         }
         Sentry.setTag("productName", ApplicationNamesInfo.getInstance().fullProductName)
+        Sentry.setTag("hostName", InetAddress.getLocalHost().hostName)
         Sentry.setTag("productVersion", ApplicationInfo.getInstance().fullVersion)
         PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version?.let {
             Sentry.setTag("pluginVersion", it )
