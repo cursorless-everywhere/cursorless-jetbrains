@@ -16,6 +16,7 @@ import org.slf4j.helpers.NOPLogger
 import java.awt.Color
 import java.awt.Graphics
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -100,17 +101,19 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             }
         }
 
-        val format = Json { isLenient = true }
+        if (Files.exists(Path.of(COLORS_PATH))) {
+            val format = Json { isLenient = true }
 
-        // TODO(pcohen): anywhere where we parse JSON, show appropriate errors to the user
-        // if the parse fails
-        val map = format.decodeFromString<ColorsFormat>(
-            Path.of(COLORS_PATH).readText()
-        )
+            // TODO(pcohen): anywhere where we parse JSON, show appropriate errors to the user
+            // if the parse fails
+            val map = format.decodeFromString<ColorsFormat>(
+                Path.of(COLORS_PATH).readText()
+            )
 
-        map.forEach { colorScheme, colorMap ->
-            colorMap.forEach { name, hex ->
-                colors[colorScheme]?.set(name, hex)
+            map.forEach { colorScheme, colorMap ->
+                colorMap.forEach { name, hex ->
+                    colors[colorScheme]?.set(name, hex)
+                }
             }
         }
 
