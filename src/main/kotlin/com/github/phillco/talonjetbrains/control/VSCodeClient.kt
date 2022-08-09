@@ -25,7 +25,7 @@ fun sendCommand(command: VSCodeCommand): String? {
 
     val socketFile = File(root)
     val sock = AFUNIXSocket.newInstance()
-    val address = AFUNIXSocketAddress.of(socketFile)
+    val address = AFUNIXSocketAddress(socketFile)
     sock.connect(address)
     var resp: String? = null
     try {

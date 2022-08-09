@@ -253,7 +253,7 @@ val socketFile = File(root)
 
 class ControlServer :
     SocketServer<AFUNIXSocketAddress, AFUNIXSocket, AFUNIXServerSocket>(
-        AFUNIXSocketAddress.of(socketFile)
+        AFUNIXSocketAddress(socketFile)
     ) {
 
 //    constructor() : super() {
@@ -262,7 +262,7 @@ class ControlServer :
 
     override fun newServerSocket(): AFUNIXServerSocket {
         val server = AFUNIXServerSocket.newInstance()
-        server.bind(AFUNIXSocketAddress.of(socketFile))
+        server.bind(AFUNIXSocketAddress(socketFile))
         return server
     }
 
