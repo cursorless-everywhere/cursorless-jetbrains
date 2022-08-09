@@ -36,7 +36,7 @@ class TalonApplicationService : Disposable {
         Sentry.setTag("hostName", InetAddress.getLocalHost().hostName)
         Sentry.setTag("productVersion", ApplicationInfo.getInstance().fullVersion)
         PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version?.let {
-            Sentry.setTag("pluginVersion", it )
+            Sentry.setTag("pluginVersion", it)
         }
         println("phil: Sentry set up!")
 

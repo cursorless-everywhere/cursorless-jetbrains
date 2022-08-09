@@ -223,7 +223,7 @@ fun serializeOverallState(): OverallState {
 
 fun markEditorChange(source: String) {
     serial += 1
-    print("serial bumped to $serial ($source)")
+    println("serial bumped to $serial ($source)")
     serializeEditorStateToFile()
 }
 
@@ -290,7 +290,7 @@ fun serializeEditorStateToFile(): Path? {
             Files.writeString(cursorlessRoot.resolve("editor-state.json"), json)
         }
 
-        println("Wrote state to: $path")
+//        println("Wrote state to: $path")
         return path
     } catch (e: Exception) {
         e.printStackTrace()

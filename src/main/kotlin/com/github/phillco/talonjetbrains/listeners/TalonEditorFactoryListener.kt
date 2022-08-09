@@ -15,7 +15,7 @@ class TalonEditorFactoryListener : EditorFactoryListener {
     }
 
     override fun editorCreated(event: EditorFactoryEvent) {
-        println("PHIL: editor created")
+        println("PHIL: editor created; attaching container")
 
         val applicationService = service<TalonApplicationService>()
         applicationService.editorCreated(event.editor)

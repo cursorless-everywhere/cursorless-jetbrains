@@ -72,15 +72,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                 if (event.path() == Paths.get(COLORS_PATH)) {
                     println("Colors updated ($event); re rendering...")
                     this.assignColors()
-                }
-                else if (event.path() == Paths.get(HATS_PATH)) {
-                    println("Hats updated ($event); re rendering...")
+                } else if (event.path() == Paths.get(HATS_PATH)) {
+//                    println("Hats updated ($event); re rendering...")
                     this.assignColors()
                     localOffsets.clear()
                     this.invalidate()
                     this.repaint()
                 } else {
-                    println("Other event ($event); ignoring...")
+//                    println("Other event ($event); ignoring...")
                 }
             }.build()
 
@@ -167,8 +166,15 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
             return map[ourTemporaryPath]!!
         } catch (e: JsonException) {
+            println(e)
+            e.printStackTrace()
+            Sentry.captureException(e)
             return null
         } catch (e: Exception) {
+            println(e)
+            e.printStackTrace()
+            Sentry.captureException(e)
+
             // kotlinx.serialization.json.internal.JsonDecodingException
             return null
         }
@@ -234,7 +240,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     fun doPainting(g: Graphics) {
         val mapping = getHats() ?: return
 
-//        println("Redrawing...")
+//        println("Redrawing for ${editor.document}...")
         mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
     }
 
