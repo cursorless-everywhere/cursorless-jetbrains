@@ -21,8 +21,11 @@ plugins {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3")
     implementation("io.sentry:sentry:6.0.0")
-    implementation("com.kohlschutter.junixsocket:junixsocket-core:2.5.0")
-    implementation("com.kohlschutter.junixsocket:junixsocket-server:2.5.0")
+    // NOTE(pcohen): intellij 2022.1+ comes with 2.3.2, so we cannot use much newer version
+    // as the APIs change.
+    // 2.3.3 is the first version with macOS arm64 support, which does seem to work.
+    implementation("com.kohlschutter.junixsocket:junixsocket-core:2.3.3")
+    implementation("com.kohlschutter.junixsocket:junixsocket-server:2.3.3")
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
 //    implementation("org.slf4j:slf4j-api:1.7.36")
 

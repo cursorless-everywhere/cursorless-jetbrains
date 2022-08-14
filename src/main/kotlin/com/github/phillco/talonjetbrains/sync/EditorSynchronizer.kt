@@ -278,10 +278,7 @@ fun serializeEditorStateToFile(): Path? {
         )
 
         // TODO(pcohen): only write this when debugging
-//        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
-
-//        var subfolder = root.resolve("$pid")
-//        Files.createDirectories(subfolder)
+        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
 
         // Also write the cursorless state
         if (isActiveCursorlessEditor()) {

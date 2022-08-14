@@ -19,13 +19,15 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.newsclub.net.unix.AFUNIXServerSocket
-import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
-import org.newsclub.net.unix.server.SocketServer
+import org.newsclub.net.unix.server.AFUNIXSocketServer
 import java.io.File
+import java.net.ServerSocket
+import java.net.Socket
+import java.net.SocketAddress
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.Future
 import kotlin.io.path.absolutePathString
 
 @Suppress("PROVIDED_RUNTIME_TOO_LOW")
@@ -109,13 +111,11 @@ fun dispatch(command: Command): CommandResponse {
 fun cursorless(command: Command): String? {
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
     // fixed chaining since this doesn't actually block on Cursorless applying the changes.
-    val preSyncResult: String? = sendCommand(VSCodeCommand("applyPrimaryEditorState"))
+    val preSyncResult: String? =
+        sendCommand(VSCodeCommand("applyPrimaryEditorState"))
 
     val command = VSCodeCommand(
-        "cursorless",
-        null,
-        null,
-        command.args!![0]
+        "cursorless", null, null, command.args!![0]
     )
 
     val resultString: String? = sendCommand(command)
@@ -149,30 +149,22 @@ fun cursorless(command: Command): String? {
         // support selection in read only files
         if (isWrite) {
             ApplicationManager.getApplication().runWriteAction {
-                CommandProcessor.getInstance()
-                    .executeCommand(
-                        getEditor()!!.project,
-                        {
-                            getEditor()?.document?.setText(newContents)
-                            getEditor()?.caretModel?.caretsAndSelections =
-                                response.newState.cursors.map { it.toCaretState() }
-                        },
-                        "Insert",
-                        "insertGroup"
-                    )
+                CommandProcessor.getInstance().executeCommand(
+                    getEditor()!!.project, {
+                    getEditor()?.document?.setText(newContents)
+                    getEditor()?.caretModel?.caretsAndSelections =
+                        response.newState.cursors.map { it.toCaretState() }
+                }, "Insert", "insertGroup"
+                )
             }
         } else {
             ApplicationManager.getApplication().runReadAction {
-                CommandProcessor.getInstance()
-                    .executeCommand(
-                        getEditor()!!.project,
-                        {
-                            getEditor()?.caretModel?.caretsAndSelections =
-                                response.newState.cursors.map { it.toCaretState() }
-                        },
-                        "Insert",
-                        "insertGroup"
-                    )
+                CommandProcessor.getInstance().executeCommand(
+                    getEditor()!!.project, {
+                    getEditor()?.caretModel?.caretsAndSelections =
+                        response.newState.cursors.map { it.toCaretState() }
+                }, "Insert", "insertGroup"
+                )
             }
         }
 
@@ -236,10 +228,7 @@ fun parseInput(inputString: String): String {
         Sentry.captureException(e)
         return Json.encodeToString(
             Response(
-                ProcessHandle.current().pid(),
-                productInfo,
-                null,
-                e.message
+                ProcessHandle.current().pid(), productInfo, null, e.message
             )
         ) + "\n"
     }
@@ -252,22 +241,62 @@ val root = Paths.get(System.getProperty("user.home"), ".jb-state/$pid.sock")
 val socketFile = File(root)
 
 class ControlServer :
-    SocketServer<AFUNIXSocketAddress, AFUNIXSocket, AFUNIXServerSocket>(
+    AFUNIXSocketServer(
         AFUNIXSocketAddress(socketFile)
     ) {
 
 //    constructor() : super() {
+//        println("[Control Socket] Constructor")
 //
 //    }
 
-    override fun newServerSocket(): AFUNIXServerSocket {
-        val server = AFUNIXServerSocket.newInstance()
-        server.bind(AFUNIXSocketAddress(socketFile))
-        return server
+//    override fun newServerSocket(): AFUNIXServerSocket {
+//        println("[Control Socket] Starting")
+//
+//        val server = AFUNIXServerSocket.newInstance()
+//        server.bind(AFUNIXSocketAddress(socketFile))
+//        println("[Control Socket] Bound")
+//
+//        return server
+//    }
+
+    override fun onServerStarting() {
+        println()
+        println("Creating server: " + javaClass.name)
+        println("with the following configuration:")
+        println("- maxConcurrentConnections: $maxConcurrentConnections")
     }
 
-    override fun doServeSocket(sock: AFUNIXSocket) {
-        println("[Control Socket] Connected: $sock")
+    override fun onServerBound(address: SocketAddress) {
+        println("Created server -- bound to $address")
+    }
+
+    override fun onServerBusy(busySince: Long) {
+        println("Server is busy")
+    }
+
+    override fun onServerReady(activeCount: Int) {
+        println(
+            "Active connections: " + activeCount +
+                "; waiting for the next connection..."
+        )
+    }
+
+    override fun onServerStopped(theServerSocket: ServerSocket) {
+        println("Close server $theServerSocket")
+    }
+
+    override fun onSubmitted(socket: Socket, submit: Future<*>?) {
+        println("Accepted: $socket")
+    }
+
+    override fun onListenException(e: java.lang.Exception) {
+        e.printStackTrace()
+    }
+
+    override fun doServeSocket(socket: Socket?) {
+        println("[Control Socket] Connected: $socket")
+        val sock = socket!!
 
         val bufferSize: Int = sock.getReceiveBufferSize()
         val buffer = ByteArray(bufferSize)
@@ -343,9 +372,18 @@ class ControlServer :
     }
 }
 
-fun createControlSocket() {
-    println("[Control Socket] Creating control socket...")
+val server = ControlServer()
 
-    val server = ControlServer()
-    server.start()
+fun createControlSocket() {
+    println("[Control Socket] Creating control socket for $pid...")
+
+    try {
+        server.start()
+    } catch (e: Exception) {
+        println("[Control Socket] ERROR: $e")
+        e.printStackTrace()
+        System.exit(1)
+    }
+
+    println("[Control Socket] started ${server.isReady} ${server.isRunning}")
 }
