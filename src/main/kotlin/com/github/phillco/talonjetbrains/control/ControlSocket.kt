@@ -381,51 +381,8 @@ class ControlServer :
         AFUNIXSocketAddress(socketFile)
     ) {
 
-//    constructor() : super() {
-//        log.info("[Control Socket] Constructor")
-//
-//    }
-
-//    override fun newServerSocket(): AFUNIXServerSocket {
-//        log.info("[Control Socket] Starting")
-//
-//        val server = AFUNIXServerSocket.newInstance()
-//        server.bind(AFUNIXSocketAddress(socketFile))
-//        log.info("[Control Socket] Bound")
-//
-//        return server
-//    }
-
-    override fun onServerStarting() {
-        log.info("Creating server: " + javaClass.name)
-        log.info("with the following configuration:")
-        log.info("- maxConcurrentConnections: $maxConcurrentConnections")
-    }
-
-    override fun onServerBound(address: SocketAddress) {
-        log.info("Created server -- bound to $address")
-    }
-
-    override fun onServerBusy(busySince: Long) {
-        log.info("Server is busy")
-    }
-
-    override fun onServerReady(activeCount: Int) {
-        log.info(
-            "Active connections: " + activeCount +
-                "; waiting for the next connection..."
-        )
-    }
-
-    override fun onServerStopped(theServerSocket: ServerSocket) {
-        log.info("Close server $theServerSocket")
-    }
-
-    override fun onSubmitted(socket: Socket, submit: Future<*>?) {
-        log.info("Accepted: $socket")
-    }
-
     override fun onListenException(e: java.lang.Exception) {
+        Sentry.captureException(e)
         e.printStackTrace()
     }
 
@@ -445,8 +402,6 @@ class ControlServer :
                 while (`is`.read(buffer).also { read = it } != -1) {
                     val inputString = String(buffer, 0, read)
 
-                    log.info("RECEIVED: $inputString")
-
                     val response = parseInput(inputString)
                     os.write(response.encodeToByteArray())
 
@@ -456,70 +411,23 @@ class ControlServer :
                 }
             }
         }
-//
-//
-// //                log.info("[Control Socket] Reading: $sock")
-// //                val inputText: String = sock.inputStream.bufferedReader().use(BufferedReader::readText)
-//
-//        try {
-//            var imp: String = "null"
-//            sock.inputStream.reader().use { inputStream ->
-//                try {
-//                    log.info("[Control Socket] Reading")
-//                    imp = inputStream.readText()
-//                    log.info("[Control Socket] Read: $imp")
-//                } catch (e: Exception) {
-//                    log.info("[Control Socket] INNER ERROR READING: $e")
-//                    e.printStackTrace()
-//                }
-//            }
-//
-//
-//            log.info("[Control Socket] Time to write")
-//
-//            sock.outputStream.writer().use { writer ->
-//                writer.write("hi\n")
-//                writer.flush()
-//            }
-//
-//            log.info("[Control Socket] Done writing")
-//
-//
-// //            sock.outputStream.bufferedWriter().use { outputStream ->
-// //                outputStream.write("hi\n")
-// //                try {
-// //                    parseInput(imp, outputStream)
-// //                    outputStream.close()
-// //                } catch (e: Exception) {
-// //                    log.info("[Control Socket] INNER ERROR WRITING: $e")
-// //                    outputStream.write("${e}")
-// //                    e.printStackTrace()
-// //                }
-// //
-// //            }
-//        } catch (e: Exception) {
-//            log.info("[Control Socket] ERROR: $e")
-//            e.printStackTrace()
-//        }
-//
-//        log.info("[Control Socket] Done Serving")
-//        sock.close()
     }
 }
 
 fun createControlSocket() {
-    log.info("PHIL: [Control Socket] Creating control socket for $pid $socketFile...")
+    log.info("[Control Socket] Creating control socket for $pid $socketFile...")
 
     try {
         socketFile.createNewFile()
 
         val server = ControlServer()
-        log.info("PHIL: [Control Socket] Initialized!")
-        log.info("PHIL:[Control Socket] started ${server.isReady} ${server.isRunning}")
+        log.info("[Control Socket] Initialized! Starting...")
 
         server.start()
-        log.info("PHIL:[Control Socket] started ${server.isReady} ${server.isRunning}")
-        log.info("PHIL: [Control Socket] Started!")
+        log.info("[Control Socket] started ${server.isReady} ${server.isRunning}")
+
+        // NOTE(pcohen): debugging a strange bug where with certain other plugins in
+        // 2021.1 we never get past .start() here (but there's no exception raised)
         Notifications.Bus.notify(
             Notification(
                 "talon",
@@ -529,7 +437,8 @@ fun createControlSocket() {
             )
         )
     } catch (e: Exception) {
-        log.info("PHIL: [Control Socket] ERROR: $e")
+        Sentry.captureException(e)
+        log.info("[Control Socket] ERROR: $e")
         e.printStackTrace()
         System.exit(1)
     }
