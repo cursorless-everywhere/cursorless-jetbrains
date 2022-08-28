@@ -108,18 +108,54 @@ fun dispatch(command: Command): CommandResponse {
     }
 }
 
+
 fun cursorless(command: Command): String? {
+    val format = Json { isLenient = true }
+
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
     // fixed chaining since this doesn't actually block on Cursorless applying the changes.
+    println("** Cursorless command")
+    var preCommandContents: String = ""
+    ApplicationManager.getApplication().invokeAndWait {
+        ApplicationManager.getApplication().runWriteAction {
+            getEditor()!!.preventFreeze()
+            CommandProcessor.getInstance().executeCommand(
+                getEditor()!!.project, {
+                    println("Pre-Cursorless command contents:\n===")
+                    preCommandContents = getEditor()?.document!!.text
+                    print(preCommandContents)
+                    println("\n===")
+                }, "Insert", "insertGroup"
+            )
+        }
+        serializeEditorStateToFile()
+    }
+//    ApplicationManager.getApplication().invokeAndWait {
+//        print(getEditor()?.document!!.text)
+//    }
+    println("** Send command")
     val preSyncResult: String? =
         sendCommand(VSCodeCommand("applyPrimaryEditorState"))
+    println("** Send command: $preSyncResult")
+
+    println("** Get state")
+    val preSyncState = format.decodeFromString<VSCodeState>(
+        sendCommand(VSCodeCommand("stateWithContents"))!!
+    )
+    val preSyncContents = File(preSyncState!!.contentsPath!!).readText()
+    println("** ")
+    println("Pre-sync VS Code contents:\n===")
+    print(preSyncContents)
+    println("\n===")
+    if (preSyncContents != preCommandContents) {
+        println("** ERROR: contents do not match!")
+    }
 
     val command = VSCodeCommand(
         "cursorless", null, null, command.args!![0]
     )
 
     val resultString: String? = sendCommand(command)
-    val format = Json { isLenient = true }
     val response = format.decodeFromString<CursorlessResponse>(
         resultString!!
     )
@@ -151,19 +187,22 @@ fun cursorless(command: Command): String? {
             ApplicationManager.getApplication().runWriteAction {
                 CommandProcessor.getInstance().executeCommand(
                     getEditor()!!.project, {
-                    getEditor()?.document?.setText(newContents)
-                    getEditor()?.caretModel?.caretsAndSelections =
-                        response.newState.cursors.map { it.toCaretState() }
-                }, "Insert", "insertGroup"
+                        println("New contents:\n===")
+                        println(newContents)
+                        println("\n===")
+                        getEditor()?.document?.setText(newContents)
+                        getEditor()?.caretModel?.caretsAndSelections =
+                            response.newState.cursors.map { it.toCaretState() }
+                    }, "Insert", "insertGroup"
                 )
             }
         } else {
             ApplicationManager.getApplication().runReadAction {
                 CommandProcessor.getInstance().executeCommand(
                     getEditor()!!.project, {
-                    getEditor()?.caretModel?.caretsAndSelections =
-                        response.newState.cursors.map { it.toCaretState() }
-                }, "Insert", "insertGroup"
+                        getEditor()?.caretModel?.caretsAndSelections =
+                            response.newState.cursors.map { it.toCaretState() }
+                    }, "Insert", "insertGroup"
                 )
             }
         }
