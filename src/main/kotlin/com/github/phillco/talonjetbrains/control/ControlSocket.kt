@@ -99,6 +99,17 @@ fun dispatch(command: Command): CommandResponse {
             Thread.sleep(5000)
             CommandResponse("finally")
         }
+        "notify" -> {
+            Notifications.Bus.notify(
+                Notification(
+                    "talon",
+                    "Hello from Talon",
+                    "This is a test notification",
+                    NotificationType.INFORMATION
+                )
+            )
+            CommandResponse("OK")
+        }
         "outreach" -> {
             val response = outreach(command)
             CommandResponse(response)
