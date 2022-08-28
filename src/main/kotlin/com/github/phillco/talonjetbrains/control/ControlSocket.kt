@@ -4,8 +4,10 @@ import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
 import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
 import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.sync.getEditor
+import com.github.phillco.talonjetbrains.sync.serial
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
+import com.intellij.codeInsight.codeVision.CodeVisionState.NotReady.result
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -101,13 +103,32 @@ fun dispatch(command: Command): CommandResponse {
             val response = outreach(command)
             CommandResponse(response)
         }
-        "cursorless" -> CommandResponse(cursorless(command))
+        "cursorless" -> {
+            /*
+            // NOTE(pcohen): this wraps the Cursorless command in a way that blocks the AWT thread.
+            // Don't think this is substantially better, because it doesn't help with chaining going the other way
+            // ("dollar take fine" ending up as "take fine dollar") and creates more UI jank with the lock being held.
+
+//            var result: CommandResponse = CommandResponse("")
+//            ApplicationManager.getApplication().invokeAndWait {
+//                result = CommandResponse(cursorless(command))
+//            }
+//            result
+             */
+            CommandResponse(cursorless(command))
+        }
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
         }
     }
 }
 
+class SerialChangedError : RuntimeException("JetBrains serial changed during execution")
+
+/**
+ * Returns whether the sidecar is ready to run a next Cursorless command, by forcing a fresh
+ * synchronization and double-checking that its contents match the current editor.
+ */
 fun testisSidecarIsReady(): Boolean {
     val format = Json { isLenient = true }
 
@@ -120,11 +141,11 @@ fun testisSidecarIsReady(): Boolean {
             getEditor()!!.preventFreeze()
             CommandProcessor.getInstance().executeCommand(
                 getEditor()!!.project, {
-                    println("Pre-Cursorless command contents:\n===")
-                    preCommandContents = getEditor()?.document!!.text
-                    print(preCommandContents)
-                    println("\n===")
-                }, "Insert", "insertGroup"
+                println("Pre-Cursorless command contents:\n===")
+                preCommandContents = getEditor()?.document!!.text
+                print(preCommandContents)
+                println("\n===")
+            }, "Insert", "insertGroup"
             )
         }
         serializeEditorStateToFile()
@@ -149,6 +170,11 @@ fun testisSidecarIsReady(): Boolean {
     return preCommandContents == preSyncContents
 }
 
+
+/**
+ * Ensures that the sidecar is ready to run the next Cursorless command by running
+ * `testisSidecarIsReady()` with retries.
+ */
 fun ensureSidecarIsReady() {
     for (i in 0..20) {
         val result = testisSidecarIsReady()
@@ -168,20 +194,27 @@ fun ensureSidecarIsReady() {
             NotificationType.ERROR
         )
     )
-    throw RuntimeException("Sidecar error: ${error}")
+    throw RuntimeException("Sidecar error: $error")
 }
 
-
-fun cursorless(command: Command): String? {
+/**
+ * Runs a single Cursorless command and returns the result.
+ *
+ * It might raise `SerialChangedError()` if the local serial increased since we started running this command,
+ * indicating a local change (like a keystroke) happened at the same time -- in which case we raise an exception
+ * without making any changes; the command can then safely be rerun.
+ */
+fun cursorlessSingle(command: Command): String? {
     val format = Json { isLenient = true }
-
+    val startingSerial = serial
     ensureSidecarIsReady()
 
-    val command = VSCodeCommand(
+    print("running with serial: $startingSerial")
+    val vcCommand = VSCodeCommand(
         "cursorless", null, null, command.args!![0]
     )
 
-    val resultString: String? = sendCommand(command)
+    val resultString: String? = sendCommand(vcCommand)
     val response = format.decodeFromString<CursorlessResponse>(
         resultString!!
     )
@@ -213,27 +246,26 @@ fun cursorless(command: Command): String? {
             ApplicationManager.getApplication().runWriteAction {
                 CommandProcessor.getInstance().executeCommand(
                     getEditor()!!.project, {
-                        println("New contents:\n===")
-                        println(newContents)
-                        println("\n===")
-                        getEditor()?.document?.setText(newContents)
-                        getEditor()?.caretModel?.caretsAndSelections =
-                            response.newState.cursors.map { it.toCaretState() }
-                    }, "Insert", "insertGroup"
+                    println("New contents:\n===")
+                    println(newContents)
+                    println("\n===")
+                    getEditor()?.document?.setText(newContents)
+                    getEditor()?.caretModel?.caretsAndSelections =
+                        response.newState.cursors.map { it.toCaretState() }
+                }, "Insert", "insertGroup"
                 )
             }
         } else {
             ApplicationManager.getApplication().runReadAction {
                 CommandProcessor.getInstance().executeCommand(
                     getEditor()!!.project, {
-                        getEditor()?.caretModel?.caretsAndSelections =
-                            response.newState.cursors.map { it.toCaretState() }
-                    }, "Insert", "insertGroup"
+                    getEditor()?.caretModel?.caretsAndSelections =
+                        response.newState.cursors.map { it.toCaretState() }
+                }, "Insert", "insertGroup"
                 )
             }
         }
 
-//        getEditor().
     }
 
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
@@ -242,6 +274,22 @@ fun cursorless(command: Command): String? {
         sendCommand(VSCodeCommand("applyPrimaryEditorState"))
 
     return "$resultString $postSyncResult"
+}
+
+/**
+ * Runs `cursorlessSingle` but automatically retry on `SerialChangedError()`s.
+ */
+fun cursorless(command: Command): String? {
+    for (i in 0..20) {
+        try {
+            println("cursorless try $i")
+            return cursorlessSingle(command)
+        } catch (e: Exception) {
+            println("cursorless hit $e, try $i")
+            Thread.sleep(100)
+        }
+    }
+    throw RuntimeException("")
 }
 
 fun outreach(command: Command): String? {
