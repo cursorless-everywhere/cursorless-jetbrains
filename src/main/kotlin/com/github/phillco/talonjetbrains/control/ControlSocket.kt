@@ -249,6 +249,21 @@ fun cursorlessSingle(command: Command): String? {
     ApplicationManager.getApplication().invokeAndWait {
         val newContents = File(response.newState!!.contentsPath!!).readText()
 
+        println("pre-command serial: $startingSerial")
+        println("post-command serial: $serial")
+
+        if (startingSerial != serial) {
+            Notifications.Bus.notify(
+                Notification(
+                    "talon",
+                    "Sidecar error",
+                    "Serial differed: $serial vs $startingSerial; retrying",
+                    NotificationType.INFORMATION
+                )
+            )
+            throw SerialChangedError()
+        }
+
         val isWrite = newContents != getEditor()?.document!!.text
 
         // Only use the write action if the contents are changing;
