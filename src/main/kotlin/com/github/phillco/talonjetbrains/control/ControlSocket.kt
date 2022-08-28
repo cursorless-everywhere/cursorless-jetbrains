@@ -15,7 +15,9 @@ import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.command.CommandProcessor
+import com.intellij.openapi.diagnostic.logger
 import com.jetbrains.rd.util.use
+import io.ktor.utils.io.*
 import io.sentry.Sentry
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
@@ -136,6 +138,8 @@ fun dispatch(command: Command): CommandResponse {
 
 class SerialChangedError : RuntimeException("JetBrains serial changed during execution")
 
+private val log = logger<ControlServer>()
+
 /**
  * Returns whether the sidecar is ready to run a next Cursorless command, by forcing a fresh
  * synchronization and double-checking that its contents match the current editor.
@@ -145,42 +149,41 @@ fun testisSidecarIsReady(): Boolean {
 
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
     // fixed chaining since this doesn't actually block on Cursorless applying the changes.
-    println("** Cursorless command")
+    log.info("** Cursorless command")
     var preCommandContents: String = ""
     ApplicationManager.getApplication().invokeAndWait {
         ApplicationManager.getApplication().runWriteAction {
             getEditor()!!.preventFreeze()
             CommandProcessor.getInstance().executeCommand(
                 getEditor()!!.project, {
-                println("Pre-Cursorless command contents:\n===")
+                log.info("Pre-Cursorless command contents:\n===")
                 preCommandContents = getEditor()?.document!!.text
-                print(preCommandContents)
-                println("\n===")
+                log.info(preCommandContents)
+                log.info("\n===")
             }, "Insert", "insertGroup"
             )
         }
         serializeEditorStateToFile()
     }
 //    ApplicationManager.getApplication().invokeAndWait {
-//        print(getEditor()?.document!!.text)
+//        log.info(getEditor()?.document!!.text)
 //    }
-    println("** Send command")
+    log.info("** Send command")
     val preSyncResult: String? =
         sendCommand(VSCodeCommand("applyPrimaryEditorState"))
-    println("** Send command: $preSyncResult")
+    log.info("** Send command: $preSyncResult")
 
-    println("** Get state")
+    log.info("** Get state")
     val preSyncState = format.decodeFromString<VSCodeState>(
         sendCommand(VSCodeCommand("stateWithContents"))!!
     )
     val preSyncContents = File(preSyncState!!.contentsPath!!).readText()
-    println("** ")
-    println("Pre-sync VS Code contents:\n===")
-    print(preSyncContents)
-    println("\n===")
+    log.info("** ")
+    log.info("Pre-sync VS Code contents:\n===")
+    log.info(preSyncContents)
+    log.info("\n===")
     return preCommandContents == preSyncContents
 }
-
 
 /**
  * Ensures that the sidecar is ready to run the next Cursorless command by running
@@ -189,7 +192,7 @@ fun testisSidecarIsReady(): Boolean {
 fun ensureSidecarIsReady() {
     for (i in 0..20) {
         val result = testisSidecarIsReady()
-        println("testisSidecarIsReady, try $i: $result")
+        log.info("testisSidecarIsReady, try $i: $result")
         if (result) {
             return
         }
@@ -220,7 +223,7 @@ fun cursorlessSingle(command: Command): String? {
     val startingSerial = serial
     ensureSidecarIsReady()
 
-    print("running with serial: $startingSerial")
+    log.info("running with serial: $startingSerial")
     val vcCommand = VSCodeCommand(
         "cursorless", null, null, command.args!![0]
     )
@@ -249,8 +252,8 @@ fun cursorlessSingle(command: Command): String? {
     ApplicationManager.getApplication().invokeAndWait {
         val newContents = File(response.newState!!.contentsPath!!).readText()
 
-        println("pre-command serial: $startingSerial")
-        println("post-command serial: $serial")
+        log.info("pre-command serial: $startingSerial")
+        log.info("post-command serial: $serial")
 
         if (startingSerial != serial) {
             Notifications.Bus.notify(
@@ -272,9 +275,9 @@ fun cursorlessSingle(command: Command): String? {
             ApplicationManager.getApplication().runWriteAction {
                 CommandProcessor.getInstance().executeCommand(
                     getEditor()!!.project, {
-                    println("New contents:\n===")
-                    println(newContents)
-                    println("\n===")
+                    log.info("New contents:\n===")
+                    log.info(newContents)
+                    log.info("\n===")
                     getEditor()?.document?.setText(newContents)
                     getEditor()?.caretModel?.caretsAndSelections =
                         response.newState.cursors.map { it.toCaretState() }
@@ -291,7 +294,6 @@ fun cursorlessSingle(command: Command): String? {
                 )
             }
         }
-
     }
 
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
@@ -308,10 +310,10 @@ fun cursorlessSingle(command: Command): String? {
 fun cursorless(command: Command): String? {
     for (i in 0..20) {
         try {
-            println("cursorless try $i")
+            log.info("cursorless try $i")
             return cursorlessSingle(command)
         } catch (e: Exception) {
-            println("cursorless hit $e, try $i")
+            log.info("cursorless hit $e, try $i")
             Thread.sleep(100)
         }
     }
@@ -329,7 +331,7 @@ fun parseInput(inputString: String): String {
     val productInfo =
         "${ApplicationNamesInfo.getInstance().fullProductName} ${ApplicationInfo.getInstance().fullVersion}"
     try {
-        println(
+        log.info(
             "[Control Socket] Received block: |$inputString|"
         )
 
@@ -339,7 +341,7 @@ fun parseInput(inputString: String): String {
             inputString
         )
 
-        println(
+        log.info(
             "[Control Socket] Received command: |$request|"
         )
 
@@ -351,14 +353,14 @@ fun parseInput(inputString: String): String {
             commandResponse,
             Json.encodeToString(request)
         )
-        println(
+        log.info(
             "[Control Socket] Going to send response: |$response|"
         )
 
         return Json.encodeToString(response) + "\n"
 
 //        outputStream.flush()
-//        println(
+//        log.info(
 //            "[Control Socket] Flushed"
 //        )
     } catch (e: Exception) {
@@ -385,48 +387,47 @@ class ControlServer :
     ) {
 
 //    constructor() : super() {
-//        println("[Control Socket] Constructor")
+//        log.info("[Control Socket] Constructor")
 //
 //    }
 
 //    override fun newServerSocket(): AFUNIXServerSocket {
-//        println("[Control Socket] Starting")
+//        log.info("[Control Socket] Starting")
 //
 //        val server = AFUNIXServerSocket.newInstance()
 //        server.bind(AFUNIXSocketAddress(socketFile))
-//        println("[Control Socket] Bound")
+//        log.info("[Control Socket] Bound")
 //
 //        return server
 //    }
 
     override fun onServerStarting() {
-        println()
-        println("Creating server: " + javaClass.name)
-        println("with the following configuration:")
-        println("- maxConcurrentConnections: $maxConcurrentConnections")
+        log.info("Creating server: " + javaClass.name)
+        log.info("with the following configuration:")
+        log.info("- maxConcurrentConnections: $maxConcurrentConnections")
     }
 
     override fun onServerBound(address: SocketAddress) {
-        println("Created server -- bound to $address")
+        log.info("Created server -- bound to $address")
     }
 
     override fun onServerBusy(busySince: Long) {
-        println("Server is busy")
+        log.info("Server is busy")
     }
 
     override fun onServerReady(activeCount: Int) {
-        println(
+        log.info(
             "Active connections: " + activeCount +
                 "; waiting for the next connection..."
         )
     }
 
     override fun onServerStopped(theServerSocket: ServerSocket) {
-        println("Close server $theServerSocket")
+        log.info("Close server $theServerSocket")
     }
 
     override fun onSubmitted(socket: Socket, submit: Future<*>?) {
-        println("Accepted: $socket")
+        log.info("Accepted: $socket")
     }
 
     override fun onListenException(e: java.lang.Exception) {
@@ -434,7 +435,7 @@ class ControlServer :
     }
 
     override fun doServeSocket(socket: Socket?) {
-        println("[Control Socket] Connected: $socket")
+        log.info("[Control Socket] Connected: $socket")
         val sock = socket!!
 
         val bufferSize: Int = sock.getReceiveBufferSize()
@@ -449,12 +450,12 @@ class ControlServer :
                 while (`is`.read(buffer).also { read = it } != -1) {
                     val inputString = String(buffer, 0, read)
 
-                    print("RECEIVED: $inputString")
+                    log.info("RECEIVED: $inputString")
 
                     val response = parseInput(inputString)
                     os.write(response.encodeToByteArray())
 
-                    println(
+                    log.info(
                         "[Control Socket] Wrote response: |$response|"
                     )
                 }
@@ -462,31 +463,31 @@ class ControlServer :
         }
 //
 //
-// //                println("[Control Socket] Reading: $sock")
+// //                log.info("[Control Socket] Reading: $sock")
 // //                val inputText: String = sock.inputStream.bufferedReader().use(BufferedReader::readText)
 //
 //        try {
 //            var imp: String = "null"
 //            sock.inputStream.reader().use { inputStream ->
 //                try {
-//                    println("[Control Socket] Reading")
+//                    log.info("[Control Socket] Reading")
 //                    imp = inputStream.readText()
-//                    println("[Control Socket] Read: $imp")
+//                    log.info("[Control Socket] Read: $imp")
 //                } catch (e: Exception) {
-//                    println("[Control Socket] INNER ERROR READING: $e")
+//                    log.info("[Control Socket] INNER ERROR READING: $e")
 //                    e.printStackTrace()
 //                }
 //            }
 //
 //
-//            println("[Control Socket] Time to write")
+//            log.info("[Control Socket] Time to write")
 //
 //            sock.outputStream.writer().use { writer ->
 //                writer.write("hi\n")
 //                writer.flush()
 //            }
 //
-//            println("[Control Socket] Done writing")
+//            log.info("[Control Socket] Done writing")
 //
 //
 // //            sock.outputStream.bufferedWriter().use { outputStream ->
@@ -495,34 +496,46 @@ class ControlServer :
 // //                    parseInput(imp, outputStream)
 // //                    outputStream.close()
 // //                } catch (e: Exception) {
-// //                    println("[Control Socket] INNER ERROR WRITING: $e")
+// //                    log.info("[Control Socket] INNER ERROR WRITING: $e")
 // //                    outputStream.write("${e}")
 // //                    e.printStackTrace()
 // //                }
 // //
 // //            }
 //        } catch (e: Exception) {
-//            println("[Control Socket] ERROR: $e")
+//            log.info("[Control Socket] ERROR: $e")
 //            e.printStackTrace()
 //        }
 //
-//        println("[Control Socket] Done Serving")
+//        log.info("[Control Socket] Done Serving")
 //        sock.close()
     }
 }
 
-val server = ControlServer()
-
 fun createControlSocket() {
-    println("[Control Socket] Creating control socket for $pid...")
+    log.info("PHIL: [Control Socket] Creating control socket for $pid $socketFile...")
 
     try {
+        socketFile.createNewFile()
+
+        val server = ControlServer()
+        log.info("PHIL: [Control Socket] Initialized!")
+        log.info("PHIL:[Control Socket] started ${server.isReady} ${server.isRunning}")
+
         server.start()
+        log.info("PHIL:[Control Socket] started ${server.isReady} ${server.isRunning}")
+        log.info("PHIL: [Control Socket] Started!")
+        Notifications.Bus.notify(
+            Notification(
+                "talon",
+                "The control socket works!",
+                "This is a test notification",
+                NotificationType.INFORMATION
+            )
+        )
     } catch (e: Exception) {
-        println("[Control Socket] ERROR: $e")
+        log.info("PHIL: [Control Socket] ERROR: $e")
         e.printStackTrace()
         System.exit(1)
     }
-
-    println("[Control Socket] started ${server.isReady} ${server.isRunning}")
 }
