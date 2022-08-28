@@ -15,21 +15,21 @@ import com.intellij.openapi.extensions.PluginId
 import io.sentry.Sentry
 import java.net.InetAddress
 
+// TODO(pcohen): read this from a environment variable or configuration file.
+private val SENTRY_DSN = "https://9cbfe01d53c14fc99e6a664054ca1a18@o313576.ingest.sentry.io/6307779"
+
 class TalonApplicationService : Disposable {
 
-    val cursorWatchers = mutableMapOf<Editor, TalonCaretListener>()
-    val selectionListeners = mutableMapOf<Editor, TalonSelectionListener>()
-    val visibleAreaListeners = mutableMapOf<Editor, TalonVisibleAreaListener>()
-    val documentListeners = mutableMapOf<Editor, TalonDocumentListener>()
+    private val cursorWatchers = mutableMapOf<Editor, TalonCaretListener>()
+    private val selectionListeners = mutableMapOf<Editor, TalonSelectionListener>()
+    private val visibleAreaListeners = mutableMapOf<Editor, TalonVisibleAreaListener>()
+    private val documentListeners = mutableMapOf<Editor, TalonDocumentListener>()
 
     init {
-        println("phil: application service in it 2")
+        println("application service init")
 
         Sentry.init { options ->
-            options.dsn =
-                "https://9cbfe01d53c14fc99e6a664054ca1a18@o313576.ingest.sentry.io/6307779"
-            // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-            // We recommend adjusting this value in production.
+            options.dsn = SENTRY_DSN
             options.tracesSampleRate = 1.0
         }
         Sentry.setTag("productName", ApplicationNamesInfo.getInstance().fullProductName)
@@ -38,13 +38,6 @@ class TalonApplicationService : Disposable {
         PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version?.let {
             Sentry.setTag("pluginVersion", it)
         }
-        println("phil: Sentry set up!")
-
-//        println(MyBundle.message("applicationService"))
-    }
-
-    fun foo() {
-        println("PHIL: foo 3!")
     }
 
     fun editorCreated(e: Editor) {

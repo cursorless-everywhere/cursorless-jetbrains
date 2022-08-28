@@ -36,8 +36,19 @@ var serial: Long = 0
 
 var hasShutdown = false
 
-var tempFiles = mutableMapOf<String, Path>()
-var tempFilesInverted = mutableMapOf<Path, String>()
+/**
+ * Maps files in the editor to temporary files that we pass to the Cursorless sidecar.
+ *
+ * There are two reasons that we do this:
+ *
+ * - In-memory changes are written immediately to the temporary file, regardless of whether the user has saved the document. Otherwise it wouldn't be possible to run Cursorless on unsaved changes.
+ *
+ * - When running commands, Cursorless only operates on the temporary file, not the real file. This makes it much easier to diff the changes the command made, and also prevents conflicts between the in-memory document and the file system.
+ *
+ * TODO(pcohen): we need to manually clean these up as we switch from file to file, not just rely on
+ * the temporary directory getting wiped
+ */
+var cursorlessTempFiles = mutableMapOf<String, Path>()
 
 private val log = logger<OverallState>()
 
@@ -70,18 +81,17 @@ fun serializeEditor(editor: Editor): EditorState {
 
     var temporaryFilePath: Path? = null
     if (currentFile != null) {
-        if (!tempFiles.containsKey(currentFile)) {
+        if (!cursorlessTempFiles.containsKey(currentFile)) {
             val tf = kotlin.io.path.createTempFile(
                 "cursorless-${File(currentFile).nameWithoutExtension}-",
                 ".${File(currentFile).extension}"
             )
-            tempFiles.put(
+            cursorlessTempFiles.put(
                 currentFile,
                 tf
             )
-            tempFilesInverted.put(tf, currentFile)
         }
-        temporaryFilePath = tempFiles.get(currentFile)
+        temporaryFilePath = cursorlessTempFiles.get(currentFile)
 
         Files.writeString(temporaryFilePath, document.charsSequence)
     }

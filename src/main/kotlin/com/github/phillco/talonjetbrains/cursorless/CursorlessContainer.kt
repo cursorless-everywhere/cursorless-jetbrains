@@ -1,7 +1,7 @@
 package com.github.phillco.talonjetbrains.cursorless
 
+import com.github.phillco.talonjetbrains.sync.cursorlessTempFiles
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
-import com.github.phillco.talonjetbrains.sync.tempFiles
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -26,36 +26,23 @@ import javax.swing.JComponent
 typealias HatsFormat = HashMap<String, ArrayList<CursorlessRange>>
 typealias ColorsFormat = HashMap<String, HashMap<String, String>>
 
-val DEFAULT_COLORS = mapOf(
-    "light" to mapOf(
-        "default" to "#757180",
-        "blue" to "#089ad3",
-        "green" to "#36B33F",
-        "red" to "#E02D28",
-        "pink" to "#e0679f",
-        "yellow" to "#edb62b",
-        "userColor1" to "#6a00ff",
-        "userColor2" to "#ffd8b1",
-    ),
-    "dark" to mapOf(
-        "default" to "#aaa7bb",
-        "blue" to "#089ad3",
-        "green" to "#36B33F",
-        "red" to "#E02D28",
-        "pink" to "#E06CAA",
-        "yellow" to "#E5C02C",
-        "userColor1" to "#6a00ff",
-        "userColor2" to "#ffd8b1",
-    )
-)
-
+/**
+ * Renders the Cursorless hats within the editor.
+ *
+ * One is created for every editor and attached directly to its AWT component as a child component.
+ */
 class CursorlessContainer(val editor: Editor) : JComponent() {
-    private var watcher: DirectoryWatcher
-    private var watchThread: Thread
     private val parent: JComponent = editor.contentComponent
 
+    private var watcher: DirectoryWatcher
+    private var watchThread: Thread
     private var started = false
 
+    /**
+     * When local changes are made (e.g., a keystroke is pushed) we record these offsets
+     * temporarily, so we can adjust hats later in the document before we get them back from
+     * the sidecar. This is purely a quality of life improvement.
+     */
     private val localOffsets = ConcurrentLinkedQueue<Pair<Int, Int>>()
 
     private var colors = DEFAULT_COLORS
@@ -65,24 +52,29 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     init {
         this.parent.add(this)
         this.bounds = parent.bounds
-        isVisible = true
-        println("Cursorless container initialized for editor $editor!")
 
+        this.assignColors()
+
+        // We create a watcher for the Cursorless hats file, as well as the colors configuration
+        // file.
+        //
+        // It's necessary to watch the hats file because `paintComponent()` is only called
+        // when there are changes on the JetBrains side.
         this.watcher = DirectoryWatcher.builder()
-            .path(Path.of(CURSORLESS_FOLDER)) // or use paths(directoriesToWatch)
+            .path(Path.of(CURSORLESS_FOLDER))
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
                 if (event.path() == Paths.get(COLORS_PATH)) {
-                    println("Colors updated ($event); re rendering...")
+                    log.debug("Colors updated ($event); re rendering...")
                     this.assignColors()
                 } else if (event.path() == Paths.get(HATS_PATH)) {
-//                    println("Hats updated ($event); re rendering...")
+                    log.debug("Hats updated ($event); re rendering...")
                     this.assignColors()
                     localOffsets.clear()
                     this.invalidate()
                     this.repaint()
                 } else {
-//                    println("Other event ($event); ignoring...")
+                    log.debug("Other event ($event); ignoring...")
                 }
             }.build()
 
@@ -90,9 +82,15 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             this.watcher.watch()
         }
         watchThread.start()
-        this.assignColors()
+
+        isVisible = true
+        log.info("Cursorless container initialized for editor $editor!")
     }
 
+    /**
+     * Assigns our colors by taking the default colors and overriding them with
+     * the values (if any) in `COLORS_PATH`.
+     */
     fun assignColors() {
         val colors = ColorsFormat()
 
@@ -132,7 +130,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
      */
     fun addLocalOffset(startOffset: Int, sizeDelta: Int) {
         localOffsets += Pair(startOffset, sizeDelta)
-        println("localOffsets = $localOffsets")
+        log.info("localOffsets = $localOffsets")
         this.invalidate()
         this.repaint()
     }
@@ -157,24 +155,24 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             val ourPath = FileDocumentManager.getInstance()
                 .getFile(editor.document)!!.path
 
-            if (!tempFiles.containsKey(ourPath)) {
+            if (!cursorlessTempFiles.containsKey(ourPath)) {
                 return null
             }
 
             val ourTemporaryPath =
-                tempFiles[ourPath]!!.toAbsolutePath().toString()
+                cursorlessTempFiles[ourPath]!!.toAbsolutePath().toString()
             if (!map.containsKey(ourTemporaryPath)) {
                 return null
             }
 
             return map[ourTemporaryPath]!!
         } catch (e: JsonException) {
-            println(e)
+            log.info(e)
             e.printStackTrace()
             Sentry.captureException(e)
             return null
         } catch (e: Exception) {
-            println(e)
+            log.info(e)
             e.printStackTrace()
             Sentry.captureException(e)
 
@@ -243,7 +241,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     fun doPainting(g: Graphics) {
         val mapping = getHats() ?: return
 
-//        println("Redrawing for ${editor.document}...")
+//        log.info("Redrawing for ${editor.document}...")
         mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
     }
 
@@ -251,14 +249,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         super.paintComponent(g)
 
         if (!File(System.getProperty("user.home") + "/.enable-cursorless-jetbrains").exists()) {
-            println("~/.enable-cursorless-jetbrains doesn't exist; not withdrawing...")
+            log.info("~/.enable-cursorless-jetbrains doesn't exist; not withdrawing...")
             return
         }
 
         startWatching()
 
         if (!File(HATS_PATH).exists()) {
-            println("Hatsfile doesn't exist; not withdrawing...")
+            log.info("Hatsfile doesn't exist; not withdrawing...")
             return
         }
 
@@ -275,15 +273,5 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             Sentry.captureException(e)
             e.printStackTrace()
         }
-    }
-
-    companion object {
-        var CURSORLESS_FOLDER =
-            System.getProperty("user.home") + "/.cursorless/"
-        var HATS_PATH =
-            System.getProperty("user.home") + "/.cursorless/vscode-hats.json"
-
-        var COLORS_PATH =
-            System.getProperty("user.home") + "/.cursorless/colors.json"
     }
 }
