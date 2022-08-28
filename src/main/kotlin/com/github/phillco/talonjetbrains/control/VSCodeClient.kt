@@ -20,6 +20,8 @@ data class VSCodeCommand(
     val cursorlessArgs: String? = null
 )
 
+val SOCKET_TIMEOUT_MS = 2000
+
 fun sendCommand(command: VSCodeCommand): String? {
     val root = Paths.get(System.getProperty("user.home"), ".cursorless/vscode-socket").absolutePathString()
 
@@ -29,6 +31,7 @@ fun sendCommand(command: VSCodeCommand): String? {
     sock.connect(address)
     var resp: String? = null
     try {
+        sock.soTimeout = SOCKET_TIMEOUT_MS
         sock.inputStream.bufferedReader().use { inputStream ->
             sock.outputStream.bufferedWriter().use { outputStream ->
                 val format = Json { isLenient = true }
