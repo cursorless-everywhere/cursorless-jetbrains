@@ -1,7 +1,7 @@
 # talon-jetbrains
 
 > **Warning**
-> This plugin is under development and isn't yet suited for the general public.
+> This plugin is under development and isn't yet suited for the general public -- it should be used only by people working on the Cursorless Everywhere project for now.
 
 <!-- Plugin description -->
 This is a new plugin for supporting JetBrains editors with Talon, using newer technologies. It also
