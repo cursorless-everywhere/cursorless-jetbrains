@@ -5,9 +5,7 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.diagnostic.logger
-import com.intellij.openapi.editor.CaretState
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
@@ -15,7 +13,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
 import io.sentry.Sentry
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.awt.Point
@@ -25,98 +22,16 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
-// https://github.com/Kotlin/kotlinx.serialization/issues/993
+// ================================================================================
+// EditorSynchronizer
+//
+// This synchronizes the current state of the editor to a file whenever there are changes
+// (projects opened, tabs switched, cursors moved, contents changed, etc.)
+//
+// This allows Talon (or the Visual Studio Code sidecar) to watch efficiently for changes.
+// ================================================================================
 
-@Serializable
-data class OverallState(
-    val pid: Long,
-    val serial: Long,
-    val ideProduct: String,
-    val ideVersion: String,
-    val pluginVersion: String?,
-    val activeEditor: EditorState?,
-    val allEditors: List<FileEditorState>?
-)
-
-@Serializable
-data class EditorState(
-    val path: String?,
-    val temporaryFilePath: String?,
-    val project: ProjectState?,
-    val firstVisibleLine: Int,
-    val lastVisibleLine: Int,
-
-    val cursors: List<Cursor>,
-    val selections: List<Selection>
-)
-
-@Serializable
-data class FileEditorState(
-    val path: String?,
-    val name: String?,
-    val isModified: Boolean,
-    val isValid: Boolean
-//    val project: ProjectState,
-)
-
-@Serializable
-data class ProjectState(
-    val name: String,
-    val basePath: String?,
-    val repos: List<RepoState>
-)
-
-@Serializable
-data class RepoState(
-    val root: String,
-    val vcsType: String
-)
-
-@Serializable
-data class Cursor(
-    val line: Int,
-    val column: Int
-)
-
-@Serializable
-data class Selection(
-    val start: Cursor?,
-    val end: Cursor?,
-    var cursorPosition: Cursor?,
-
-    // NOTE(pcohen): these are provided for convenience for VS Code
-    val active: Cursor?,
-    val anchor: Cursor?
-)
-
-// TODO(pcohen): can we put these directly on the data classes?
-fun cursorFromLogicalPosition(lp: LogicalPosition): Cursor = Cursor(lp.line, lp.column)
-fun selectionFromCaretState(lp: CaretState): Selection {
-    val start = lp.selectionStart?.let { cursorFromLogicalPosition(it) }
-    val end = lp.selectionEnd?.let { cursorFromLogicalPosition(it) }
-    val cursor = lp.caretPosition?.let { cursorFromLogicalPosition(it) }
-
-    // provide the "anchor" and "active" for ease of implementation inside of Visual Studio Code
-    // note - if the cursor isn't either of these, will return null
-    var active: Cursor? = null
-    var anchor: Cursor? = null
-    if (start == cursor) {
-        active = start
-        anchor = end
-    } else if (end == cursor) {
-        active = end
-        anchor = start
-    }
-
-    return Selection(
-        start,
-        end,
-        cursor,
-        active,
-        anchor
-    )
-}
-
+// This is increased every time any change is made.
 var serial: Long = 0
 
 var hasShutdown = false
@@ -178,7 +93,8 @@ fun serializeEditor(editor: Editor): EditorState {
         )
     }
 
-    val selections = editor.caretModel.caretsAndSelections.map { selectionFromCaretState(it) }
+    val selections =
+        editor.caretModel.caretsAndSelections.map { selectionFromCaretState(it) }
 
     val ve = editor.scrollingModel.visibleArea
 
@@ -225,10 +141,12 @@ fun markEditorChange(source: String) {
 
 fun isActiveCursorlessEditor(): Boolean {
     val path =
-        Paths.get(System.getProperty("user.home"), ".cursorless").resolve("primary-editor-pid")
+        Paths.get(System.getProperty("user.home"), ".cursorless")
+            .resolve("primary-editor-pid")
 
     try {
-        return Files.readString(path).trim().toLong() == ProcessHandle.current().pid()
+        return Files.readString(path).trim().toLong() == ProcessHandle.current()
+            .pid()
     } catch (e: Exception) {
         return false
     }
@@ -274,7 +192,10 @@ fun serializeEditorStateToFile(): Path? {
         )
 
         // TODO(pcohen): only write this when debugging
-        Files.writeString(root.resolve("pid"), "${ProcessHandle.current().pid()}")
+        Files.writeString(
+            root.resolve("pid"),
+            "${ProcessHandle.current().pid()}"
+        )
 
         // Also write the cursorless state
         if (isActiveCursorlessEditor()) {
