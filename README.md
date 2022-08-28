@@ -11,10 +11,10 @@ implements Cursorless support [using the VS Code sidecar](https://github.com/phi
 # Interesting code locations
 
 - **[listeners](https://github.com/phillco/talon-jetbrains/tree/main/src/main/kotlin/com/github/phillco/talonjetbrains/listeners)**: this is where we wire up listeners for the various change events in the IDE so we can react to them
-- **[StateWriter](https://github.com/phillco/talon-jetbrains/blob/main/src/main/kotlin/com/github/phillco/talonjetbrains/sync/StateWriter.kt)**: this is where we write out statefiles for the editor in response to listener changes. These state files can be watched by Talon, or the [Cursorless sidecar](https://github.com/phillco/cursorless-sidecar) to reload the sidecar.
+- **[StateWriter](https://github.com/phillco/talon-jetbrains/blob/main/src/main/kotlin/com/github/phillco/talonjetbrains/sync/StateWriter.kt)**: this is where we write out statefiles for the editor in response to listener changes. These state files can be watched by Talon, or the [Cursorless sidecar](https://githubcom/phillco/cursorless-sidecar) to reload the sidecar.
 
 
-### Cursorless specific:
+### Cursorless:
 
 - **[CursorlessContainer](https://github.com/phillco/talon-jetbrains/blob/main/src/main/kotlin/com/github/phillco/talonjetbrains/cursorless/CursorlessContainer.kt)**: this is what renders the hats inside of the editor when using the [Cursorless sidecar](https://github.com/phillco/cursorless-sidecar.
 - **[VSCodeClient](https://github.com/phillco/talon-jetbrains/blob/main/src/main/kotlin/com/github/phillco/talonjetbrains/cursorless/VSCodeClient.kt)**: allows sending messages to the embedded Unix main socket server inside of the )[Cursorless sidecar](https://github.com/phillco/cursorless-sidecar. This is used to control the sidecar without having to focus it.
