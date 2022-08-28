@@ -108,8 +108,7 @@ fun dispatch(command: Command): CommandResponse {
     }
 }
 
-
-fun cursorless(command: Command): String? {
+fun testisSidecarIsReady(): Boolean {
     val format = Json { isLenient = true }
 
     // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
@@ -147,9 +146,36 @@ fun cursorless(command: Command): String? {
     println("Pre-sync VS Code contents:\n===")
     print(preSyncContents)
     println("\n===")
-    if (preSyncContents != preCommandContents) {
-        println("** ERROR: contents do not match!")
+    return preCommandContents == preSyncContents
+}
+
+fun ensureSidecarIsReady() {
+    for (i in 0..20) {
+        val result = testisSidecarIsReady()
+        println("testisSidecarIsReady, try $i: $result")
+        if (result) {
+            return
+        }
+        Thread.sleep(100)
     }
+
+    val error = "Sidecar wasn't ready after N retries"
+    Notifications.Bus.notify(
+        Notification(
+            "talon",
+            "Sidecar error",
+            error,
+            NotificationType.ERROR
+        )
+    )
+    throw RuntimeException("Sidecar error: ${error}")
+}
+
+
+fun cursorless(command: Command): String? {
+    val format = Json { isLenient = true }
+
+    ensureSidecarIsReady()
 
     val command = VSCodeCommand(
         "cursorless", null, null, command.args!![0]
@@ -215,7 +241,7 @@ fun cursorless(command: Command): String? {
     val postSyncResult: String? =
         sendCommand(VSCodeCommand("applyPrimaryEditorState"))
 
-    return "$preSyncResult $resultString $postSyncResult"
+    return "$resultString $postSyncResult"
 }
 
 fun outreach(command: Command): String? {
