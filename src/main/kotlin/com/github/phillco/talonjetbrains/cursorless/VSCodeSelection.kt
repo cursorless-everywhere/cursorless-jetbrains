@@ -3,7 +3,6 @@ package com.github.phillco.talonjetbrains.cursorless
 import com.intellij.openapi.editor.CaretState
 import kotlinx.serialization.Serializable
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 class VSCodeSelection {
     // TODO(pcohen): these should not be nullable

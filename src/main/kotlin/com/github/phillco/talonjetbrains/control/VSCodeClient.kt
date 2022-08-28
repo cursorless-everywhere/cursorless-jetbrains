@@ -11,7 +11,6 @@ import java.io.IOException
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class VSCodeCommand(
     val command: String,

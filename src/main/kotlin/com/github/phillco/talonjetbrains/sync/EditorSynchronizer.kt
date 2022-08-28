@@ -27,7 +27,6 @@ import kotlin.io.path.absolutePathString
 
 // https://github.com/Kotlin/kotlinx.serialization/issues/993
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class OverallState(
     val pid: Long,
@@ -39,7 +38,6 @@ data class OverallState(
     val allEditors: List<FileEditorState>?
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class EditorState(
     val path: String?,
@@ -52,7 +50,6 @@ data class EditorState(
     val selections: List<Selection>
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class FileEditorState(
     val path: String?,
@@ -62,7 +59,6 @@ data class FileEditorState(
 //    val project: ProjectState,
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class ProjectState(
     val name: String,
@@ -70,21 +66,18 @@ data class ProjectState(
     val repos: List<RepoState>
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class RepoState(
     val root: String,
     val vcsType: String
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class Cursor(
     val line: Int,
     val column: Int
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class Selection(
     val start: Cursor?,

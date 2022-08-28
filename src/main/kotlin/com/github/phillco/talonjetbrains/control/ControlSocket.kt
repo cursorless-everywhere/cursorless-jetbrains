@@ -34,14 +34,12 @@ import java.nio.file.Paths
 import java.util.concurrent.Future
 import kotlin.io.path.absolutePathString
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class Command(
     val command: String,
     val args: List<String>? = null
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class Response(
     val pid: Long,
@@ -53,14 +51,12 @@ data class Response(
     val error: String? = null
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 data class CommandResponse(
     val result: String? = null,
     val args: List<String>? = null
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 // position, range (pair of position), selection (anchor+active position)
 data class VSCodeState(
@@ -69,7 +65,6 @@ data class VSCodeState(
     val contentsPath: String? = null
 )
 
-@Suppress("PROVIDED_RUNTIME_TOO_LOW")
 @Serializable
 // position, range (pair of position), selection (anchor+active position)
 data class CursorlessResponse(
