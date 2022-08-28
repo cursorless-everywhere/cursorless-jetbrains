@@ -1,13 +1,16 @@
 package com.github.phillco.talonjetbrains.talon
 
+import com.github.phillco.talonjetbrains.control.Command
+import com.github.phillco.talonjetbrains.control.CommandResponse
+import com.github.phillco.talonjetbrains.control.CursorlessResponse
+import com.github.phillco.talonjetbrains.control.Response
+import com.github.phillco.talonjetbrains.control.VSCodeState
 import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
-import com.github.phillco.talonjetbrains.cursorless.VSCodeSelection
 import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serial
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
-import com.intellij.codeInsight.codeVision.CodeVisionState.NotReady.result
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -19,7 +22,6 @@ import com.intellij.openapi.diagnostic.logger
 import com.jetbrains.rd.util.use
 import io.ktor.utils.io.*
 import io.sentry.Sentry
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -30,47 +32,6 @@ import java.net.Socket
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
-
-@Serializable
-data class Command(
-    val command: String,
-    val args: List<String>? = null
-)
-
-@Serializable
-data class Response(
-    val pid: Long,
-    val product: String,
-    val response: CommandResponse? = null,
-    val receivedCommand: String?,
-    // TODO(pcohen): make this type definition include
-    // either an error or response object
-    val error: String? = null
-)
-
-@Serializable
-data class CommandResponse(
-    val result: String? = null,
-    val args: List<String>? = null
-)
-
-@Serializable
-// position, range (pair of position), selection (anchor+active position)
-data class VSCodeState(
-    val path: String,
-    val cursors: List<VSCodeSelection>,
-    val contentsPath: String? = null
-)
-
-@Serializable
-// position, range (pair of position), selection (anchor+active position)
-data class CursorlessResponse(
-    val oldState: VSCodeState? = null,
-    val newState: VSCodeState? = null,
-    val commandResult: String? = null,
-    val commandException: String? = null,
-    val error: String? = null
-)
 
 private val json = Json { isLenient = true }
 
@@ -109,17 +70,6 @@ fun dispatch(command: Command): CommandResponse {
             CommandResponse(response)
         }
         "cursorless" -> {
-            /*
-            // NOTE(pcohen): this wraps the Cursorless command in a way that blocks the AWT thread.
-            // Don't think this is substantially better, because it doesn't help with chaining going the other way
-            // ("dollar take fine" ending up as "take fine dollar") and creates more UI jank with the lock being held.
-
-//            var result: CommandResponse = CommandResponse("")
-//            ApplicationManager.getApplication().invokeAndWait {
-//                result = CommandResponse(cursorless(command))
-//            }
-//            result
-             */
             CommandResponse(cursorless(command))
         }
         else -> {
@@ -139,9 +89,6 @@ private val log = logger<ControlServer>()
 fun testisSidecarIsReady(): Boolean {
     val format = Json { isLenient = true }
 
-    // Attempts to tell the sidecar to synchronize. Note that this doesn't seem to fully
-    // fixed chaining since this doesn't actually block on Cursorless applying the changes.
-    log.info("** Cursorless command")
     var preCommandContents: String = ""
     ApplicationManager.getApplication().invokeAndWait {
         ApplicationManager.getApplication().runWriteAction {
@@ -157,23 +104,11 @@ fun testisSidecarIsReady(): Boolean {
         }
         serializeEditorStateToFile()
     }
-//    ApplicationManager.getApplication().invokeAndWait {
-//        log.info(getEditor()?.document!!.text)
-//    }
-    log.info("** Send command")
-    val preSyncResult: String? =
-        sendCommand(VSCodeCommand("applyPrimaryEditorState"))
-    log.info("** Send command: $preSyncResult")
-
-    log.info("** Get state")
+    sendCommand(VSCodeCommand("applyPrimaryEditorState"))
     val preSyncState = format.decodeFromString<VSCodeState>(
         sendCommand(VSCodeCommand("stateWithContents"))!!
     )
     val preSyncContents = File(preSyncState!!.contentsPath!!).readText()
-    log.info("** ")
-    log.info("Pre-sync VS Code contents:\n===")
-    log.info(preSyncContents)
-    log.info("\n===")
     return preCommandContents == preSyncContents
 }
 
