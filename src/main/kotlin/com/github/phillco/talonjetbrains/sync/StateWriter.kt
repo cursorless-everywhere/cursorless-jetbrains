@@ -23,9 +23,9 @@ import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
 // ================================================================================
-// EditorSynchronizer
+// StateWriter
 //
-// This synchronizes the current state of the editor to a file whenever there are changes
+// This writes out the current state of the editor to a file whenever there are changes
 // (projects opened, tabs switched, cursors moved, contents changed, etc.)
 //
 // This allows Talon (or the Visual Studio Code sidecar) to watch efficiently for changes.
