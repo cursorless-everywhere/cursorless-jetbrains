@@ -2,6 +2,7 @@ package com.github.phillco.talonjetbrains.cursorless
 
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
 import com.github.phillco.talonjetbrains.sync.tempFiles
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.ui.JBColor
@@ -58,6 +59,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     private val localOffsets = ConcurrentLinkedQueue<Pair<Int, Int>>()
 
     private var colors = DEFAULT_COLORS
+
+    private val log = logger<CursorlessContainer>()
 
     init {
         this.parent.add(this)
@@ -208,7 +211,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             var affectedByLocalOffsets = false
             localOffsets.forEach { pair ->
                 if (offset >= pair.first) {
-                    println("adjusting $offset to ${offset + pair.second} due to local offset: $localOffsets")
+                    log.warn("adjusting $offset to ${offset + pair.second} due to local offset: $localOffsets")
                     offset += pair.second
                     affectedByLocalOffsets = true
                 }
