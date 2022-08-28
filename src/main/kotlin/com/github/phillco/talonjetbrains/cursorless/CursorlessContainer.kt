@@ -23,9 +23,6 @@ import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.swing.JComponent
 
-typealias HatsFormat = HashMap<String, ArrayList<CursorlessRange>>
-typealias ColorsFormat = HashMap<String, HashMap<String, String>>
-
 /**
  * Renders the Cursorless hats within the editor.
  *
@@ -59,7 +56,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         // file.
         //
         // It's necessary to watch the hats file because `paintComponent()` is only called
-        // when there are changes on the JetBrains side.
+        // when there are changes on the JetBrains side, but the new hats come from the sidecar
+        // slightly after that, so we need to know when that happens and trigger a re-render.
         this.watcher = DirectoryWatcher.builder()
             .path(Path.of(CURSORLESS_FOLDER))
             .logger(NOPLogger.NOP_LOGGER)
@@ -135,7 +133,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         this.repaint()
     }
 
-    fun startWatching() {
+    fun startWatchingIfNeeded() {
         if (started) {
             return
         }
@@ -143,6 +141,9 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         started = true
     }
 
+    /**
+     * Returns the list of hat decorations for this editor, if there is a valid one.
+     */
     fun getHats(): HatsFormat? {
         try {
             val format = Json { isLenient = true }
@@ -152,31 +153,33 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                     File(HATS_PATH).readText()
                 )
 
-            val ourPath = FileDocumentManager.getInstance()
+            val editorPath = FileDocumentManager.getInstance()
                 .getFile(editor.document)!!.path
 
-            if (!cursorlessTempFiles.containsKey(ourPath)) {
+            if (!cursorlessTempFiles.containsKey(editorPath)) {
                 return null
             }
 
-            val ourTemporaryPath =
-                cursorlessTempFiles[ourPath]!!.toAbsolutePath().toString()
-            if (!map.containsKey(ourTemporaryPath)) {
+            val editorTemporaryPath =
+                cursorlessTempFiles[editorPath]!!.toAbsolutePath().toString()
+
+            // Don't render stale hats for other files. This usually happens when switching between files.
+            if (!map.containsKey(editorTemporaryPath)) {
                 return null
             }
 
-            return map[ourTemporaryPath]!!
+            return map[editorTemporaryPath]!!
         } catch (e: JsonException) {
             log.info(e)
             e.printStackTrace()
             Sentry.captureException(e)
             return null
         } catch (e: Exception) {
+            // kotlinx.serialization.json.internal.JsonDecodingException
+
             log.info(e)
             e.printStackTrace()
             Sentry.captureException(e)
-
-            // kotlinx.serialization.json.internal.JsonDecodingException
             return null
         }
     }
@@ -196,44 +199,23 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
     fun renderForColor(g: Graphics, mapping: HatsFormat, colorName: String) {
         mapping[colorName]!!.forEach { range: CursorlessRange ->
-            // NOTE(pcohen): use offsets so we handle tabs properly
             var offset = range.startOffset!!
 
-            // NOTE(pcohen): this was an attempt to make hats on subsequent lines a bit less janky
-            // When local edits are performed (use the line number, and then try to figure out the character offset)
-//                            val startOfLineOffset = editor.logicalPositionToOffset(
-//                                LogicalPosition(range.start!!.line, 0)
-//                            )
-//                            var offset = startOfLineOffset + range.start!!.character
-
-            var affectedByLocalOffsets = false
             localOffsets.forEach { pair ->
                 if (offset >= pair.first) {
                     log.warn("adjusting $offset to ${offset + pair.second} due to local offset: $localOffsets")
                     offset += pair.second
-                    affectedByLocalOffsets = true
                 }
             }
 
-            val lp = editor.offsetToLogicalPosition(offset)
-            val cp = editor.visualPositionToXY(editor.logicalToVisualPosition(lp))
-
-            /*
-            // NOTE(pcohen): these seem to break colored hats
-            val alpha = if(affectedByLocalOffsets) 0.5 else 0.85
-            val light = jColor!!
-            val dark = jColor.darkVariant
-
-            val jColorWithAlpha = JBColor(
-                Color(light.red, light.green, light.blue, (255.0 * alpha).toInt()),
-            )
-             */
+            val logicalPosition = editor.offsetToLogicalPosition(offset)
+            val coordinates = editor.visualPositionToXY(editor.logicalToVisualPosition(logicalPosition))
 
             g.color = this.colorForName(colorName)
 
-            val size = 4
+            val size = OVAL_SIZE
             g.fillOval(
-                cp.x + 4, cp.y - size / 2 - 0, size, size
+                coordinates.x + OVAL_SIZE, coordinates.y - size / 2, size, size
             )
         }
     }
@@ -241,19 +223,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     fun doPainting(g: Graphics) {
         val mapping = getHats() ?: return
 
-//        log.info("Redrawing for ${editor.document}...")
+        log.debug("Redrawing for ${editor.document}...")
         mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
     }
 
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
 
-        if (!File(System.getProperty("user.home") + "/.enable-cursorless-jetbrains").exists()) {
-            log.info("~/.enable-cursorless-jetbrains doesn't exist; not withdrawing...")
-            return
-        }
-
-        startWatching()
+        startWatchingIfNeeded()
 
         if (!File(HATS_PATH).exists()) {
             log.info("Hatsfile doesn't exist; not withdrawing...")

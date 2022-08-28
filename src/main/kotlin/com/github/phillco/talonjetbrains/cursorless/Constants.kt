@@ -26,8 +26,17 @@ val DEFAULT_COLORS = mapOf(
 
 var CURSORLESS_FOLDER =
     System.getProperty("user.home") + "/.cursorless/"
+
 var HATS_PATH =
     System.getProperty("user.home") + "/.cursorless/vscode-hats.json"
 
 var COLORS_PATH =
     System.getProperty("user.home") + "/.cursorless/colors.json"
+
+// Format of the vscode-hats.json file.
+typealias HatsFormat = HashMap<String, ArrayList<CursorlessRange>>
+
+// Format of the colors.json.
+typealias ColorsFormat = HashMap<String, HashMap<String, String>>
+
+val OVAL_SIZE = 4 // px

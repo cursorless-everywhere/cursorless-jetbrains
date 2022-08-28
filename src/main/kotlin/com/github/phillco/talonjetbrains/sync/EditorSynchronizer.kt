@@ -149,6 +149,12 @@ fun markEditorChange(source: String) {
     serializeEditorStateToFile()
 }
 
+/**
+ * Returns whether we are the "active Cursorless editor" application and should show hats / receive commands / etc.
+ * This is to allow multiple applications to support Cursorless.
+ *
+ * This is set by Talon when switching between different JetBrains editors.
+ */
 fun isActiveCursorlessEditor(): Boolean {
     val path =
         Paths.get(System.getProperty("user.home"), ".cursorless")
