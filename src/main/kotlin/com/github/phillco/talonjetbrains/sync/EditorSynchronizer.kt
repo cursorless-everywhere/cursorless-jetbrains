@@ -4,6 +4,7 @@ import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
+import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.CaretState
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
@@ -130,6 +131,8 @@ var hasShutdown = false
 var tempFiles = mutableMapOf<String, Path>()
 var tempFilesInverted = mutableMapOf<Path, String>()
 
+private val log = logger<OverallState>()
+
 fun getProject(): Project? {
     return IdeFocusManager.findInstance().lastFocusedFrame?.project
 }
@@ -223,7 +226,7 @@ fun serializeOverallState(): OverallState {
 
 fun markEditorChange(source: String) {
     serial += 1
-    println("serial bumped to $serial ($source)")
+    log.info("serial bumped to $serial ($source)")
     serializeEditorStateToFile()
 }
 
