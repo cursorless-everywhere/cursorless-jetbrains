@@ -192,7 +192,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         }
 
         return JBColor(
-            Color.decode(lightColor), Color.decode(darkColor)
+            Color.decode(lightColor),
+            Color.decode(darkColor)
         )
     }
 
@@ -214,7 +215,10 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
             val size = OVAL_SIZE
             g.fillOval(
-                coordinates.x + OVAL_SIZE, coordinates.y - size / 2, size, size
+                coordinates.x + OVAL_SIZE,
+                coordinates.y - size / 2,
+                size,
+                size
             )
         }
     }
@@ -243,10 +247,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         try {
             doPainting(g)
         } catch (e: NullPointerException) {
-
             e.printStackTrace()
         } catch (e: JsonException) {
-
             e.printStackTrace()
         }
     }

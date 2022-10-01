@@ -122,7 +122,10 @@ fun parseInput(inputString: String): String {
 
         return Json.encodeToString(
             Response(
-                ProcessHandle.current().pid(), productInfo, null, e.message
+                ProcessHandle.current().pid(),
+                productInfo,
+                null,
+                e.message
             )
         ) + "\n"
     }
@@ -137,7 +140,6 @@ class ControlServer :
     ) {
 
     override fun onListenException(e: java.lang.Exception) {
-
         e.printStackTrace()
     }
 
@@ -192,7 +194,6 @@ fun createControlSocket() {
             )
         )
     } catch (e: Exception) {
-
         log.info("[Control Socket] ERROR: $e")
         e.printStackTrace()
         System.exit(1)

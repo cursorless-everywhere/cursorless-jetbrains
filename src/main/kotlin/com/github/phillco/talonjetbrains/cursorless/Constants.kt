@@ -10,7 +10,7 @@ val DEFAULT_COLORS = mapOf(
         "pink" to "#e0679f",
         "yellow" to "#edb62b",
         "userColor1" to "#6a00ff",
-        "userColor2" to "#ffd8b1",
+        "userColor2" to "#ffd8b1"
     ),
     "dark" to mapOf(
         "default" to "#aaa7bb",
@@ -20,7 +20,7 @@ val DEFAULT_COLORS = mapOf(
         "pink" to "#E06CAA",
         "yellow" to "#E5C02C",
         "userColor1" to "#6a00ff",
-        "userColor2" to "#ffd8b1",
+        "userColor2" to "#ffd8b1"
     )
 )
 

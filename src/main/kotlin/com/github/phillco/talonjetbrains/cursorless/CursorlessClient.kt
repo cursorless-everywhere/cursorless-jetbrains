@@ -13,7 +13,7 @@ import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.logger
-import io.ktor.utils.io.*
+import io.ktor.utils.io.preventFreeze
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -34,12 +34,15 @@ fun testisSidecarIsReady(): Boolean {
         ApplicationManager.getApplication().runWriteAction {
             getEditor()!!.preventFreeze()
             CommandProcessor.getInstance().executeCommand(
-                getEditor()!!.project, {
-                log.info("Pre-Cursorless command contents:\n===")
-                preCommandContents = getEditor()?.document!!.text
-                log.info(preCommandContents)
-                log.info("\n===")
-            }, "Insert", "insertGroup"
+                getEditor()!!.project,
+                {
+                    log.info("Pre-Cursorless command contents:\n===")
+                    preCommandContents = getEditor()?.document!!.text
+                    log.info(preCommandContents)
+                    log.info("\n===")
+                },
+                "Insert",
+                "insertGroup"
             )
         }
         serializeEditorStateToFile()
@@ -92,7 +95,10 @@ fun cursorlessSingle(command: Command): String? {
 
     log.info("running with serial: $startingSerial")
     val vcCommand = VSCodeCommand(
-        "cursorless", null, null, command.args!![0]
+        "cursorless",
+        null,
+        null,
+        command.args!![0]
     )
 
     val resultString: String? = sendCommand(vcCommand)
@@ -141,23 +147,29 @@ fun cursorlessSingle(command: Command): String? {
         if (isWrite) {
             ApplicationManager.getApplication().runWriteAction {
                 CommandProcessor.getInstance().executeCommand(
-                    getEditor()!!.project, {
-                    log.info("New contents:\n===")
-                    log.info(newContents)
-                    log.info("\n===")
-                    getEditor()?.document?.setText(newContents)
-                    getEditor()?.caretModel?.caretsAndSelections =
-                        response.newState.cursors.map { it.toCaretState() }
-                }, "Insert", "insertGroup"
+                    getEditor()!!.project,
+                    {
+                        log.info("New contents:\n===")
+                        log.info(newContents)
+                        log.info("\n===")
+                        getEditor()?.document?.setText(newContents)
+                        getEditor()?.caretModel?.caretsAndSelections =
+                            response.newState.cursors.map { it.toCaretState() }
+                    },
+                    "Insert",
+                    "insertGroup"
                 )
             }
         } else {
             ApplicationManager.getApplication().runReadAction {
                 CommandProcessor.getInstance().executeCommand(
-                    getEditor()!!.project, {
-                    getEditor()?.caretModel?.caretsAndSelections =
-                        response.newState.cursors.map { it.toCaretState() }
-                }, "Insert", "insertGroup"
+                    getEditor()!!.project,
+                    {
+                        getEditor()?.caretModel?.caretsAndSelections =
+                            response.newState.cursors.map { it.toCaretState() }
+                    },
+                    "Insert",
+                    "insertGroup"
                 )
             }
         }
