@@ -14,7 +14,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.diagnostic.logger
 import com.jetbrains.rd.util.use
-import io.sentry.Sentry
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -120,7 +119,7 @@ fun parseInput(inputString: String): String {
         return Json.encodeToString(response) + "\n"
     } catch (e: Exception) {
         e.printStackTrace()
-        Sentry.captureException(e)
+
         return Json.encodeToString(
             Response(
                 ProcessHandle.current().pid(), productInfo, null, e.message
@@ -138,7 +137,7 @@ class ControlServer :
     ) {
 
     override fun onListenException(e: java.lang.Exception) {
-        Sentry.captureException(e)
+
         e.printStackTrace()
     }
 
@@ -193,7 +192,7 @@ fun createControlSocket() {
             )
         )
     } catch (e: Exception) {
-        Sentry.captureException(e)
+
         log.info("[Control Socket] ERROR: $e")
         e.printStackTrace()
         System.exit(1)

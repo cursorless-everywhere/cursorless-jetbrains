@@ -10,7 +10,6 @@ import com.intellij.util.io.readText
 import groovy.json.JsonException
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
-import io.sentry.Sentry
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import org.slf4j.helpers.NOPLogger
@@ -172,14 +171,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         } catch (e: JsonException) {
             log.info(e)
             e.printStackTrace()
-            Sentry.captureException(e)
+
             return null
         } catch (e: Exception) {
             // kotlinx.serialization.json.internal.JsonDecodingException
 
             log.info(e)
             e.printStackTrace()
-            Sentry.captureException(e)
+
             return null
         }
     }
@@ -244,10 +243,10 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         try {
             doPainting(g)
         } catch (e: NullPointerException) {
-            Sentry.captureException(e)
+
             e.printStackTrace()
         } catch (e: JsonException) {
-            Sentry.captureException(e)
+
             e.printStackTrace()
         }
     }

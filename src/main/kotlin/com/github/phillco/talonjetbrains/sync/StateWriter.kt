@@ -12,7 +12,6 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
-import io.sentry.Sentry
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.awt.Point
@@ -224,7 +223,7 @@ fun serializeEditorStateToFile(): Path? {
         return path
     } catch (e: Exception) {
         e.printStackTrace()
-        Sentry.captureException(e)
+
         return null
     }
 }
@@ -253,6 +252,5 @@ fun unlinkStateFile() {
         }
     } catch (e: Exception) {
         e.printStackTrace()
-        Sentry.captureException(e)
     }
 }
