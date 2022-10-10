@@ -10,6 +10,8 @@ import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.TextEditor
+import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
 import kotlinx.serialization.encodeToString
@@ -71,7 +73,10 @@ fun serializeProject(project: Project): ProjectState {
     return ProjectState(project.name, project.basePath, repos)
 }
 
-fun serializeEditor(editor: Editor): EditorState {
+fun toEditor(fileEditor: FileEditor): Editor =
+    (fileEditor as TextEditor).editor
+
+fun serializeEditor(editor: Editor, active: Boolean): EditorState {
     val project = editor.project
     val document = editor.document
 
@@ -110,12 +115,42 @@ fun serializeEditor(editor: Editor): EditorState {
     return EditorState(
         currentFile,
         temporaryFilePath?.absolutePathString(),
+        active,
         project?.let { serializeProject(it) },
         editor.xyToLogicalPosition(Point(ve.x, ve.y)).line,
         editor.xyToLogicalPosition(Point(ve.x, ve.y + ve.height)).line,
         cursors,
         selections
+
     )
+}
+
+/**
+ * Serializes all open and visible editors (splits) for the given project.
+ *
+ * It does not include non visible tabs inside of those splits.
+ */
+fun serializeAllEditors(project: Project): List<EditorState> {
+    val femx = FileEditorManagerEx.getInstanceEx(project)
+
+    val allEditors =
+        femx?.windows?.map { window ->
+            val selectedFile = window.selectedFile
+
+            // TODO(pcohen): this doesn't properly support opening the same window
+            // across multiple splits
+            val editors = femx.getEditors(selectedFile)
+            toEditor(editors[0])
+        }
+
+    return allEditors?.let { editors ->
+        editors.map { it ->
+            serializeEditor(
+                it,
+                it == getEditor()
+            )
+        }
+    } ?: listOf()
 }
 
 fun serializeFileEditor(editor: FileEditor): FileEditorState {
@@ -129,6 +164,7 @@ fun serializeFileEditor(editor: FileEditor): FileEditorState {
 
 fun serializeOverallState(): OverallState {
     val editor = getEditor()
+    val project = getProject()
     val allEditors = getFileEditorManager()?.allEditors
 
     return OverallState(
@@ -137,8 +173,10 @@ fun serializeOverallState(): OverallState {
         ApplicationNamesInfo.getInstance().fullProductName,
         ApplicationInfo.getInstance().fullVersion,
         PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version,
-        editor?.let { serializeEditor(it) },
-        allEditors?.map { x -> serializeFileEditor(x) }
+        editor?.let { serializeEditor(it, true) },
+        project?.let { p -> serializeAllEditors(p) } ?: listOf()
+        // NOTE(pcohen): removed for now; not very useful
+//        allEditors?.map { x -> serializeFileEditor(x) }
     )
 }
 

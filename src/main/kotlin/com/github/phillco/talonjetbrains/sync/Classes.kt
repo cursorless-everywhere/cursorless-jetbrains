@@ -14,8 +14,12 @@ data class OverallState(
     val ideProduct: String,
     val ideVersion: String,
     val pluginVersion: String?,
+
+    // TODO(pcohen): deprecate this; caller should just read find the editor with active=True
     val activeEditor: EditorState?,
-    val allEditors: List<FileEditorState>?
+
+    val editors: List<EditorState>
+//    val allEditors: List<FileEditorState>?
 )
 
 /**
@@ -25,12 +29,15 @@ data class OverallState(
 data class EditorState(
     val path: String?,
     val temporaryFilePath: String?,
+    val active: Boolean,
     val project: ProjectState?,
     val firstVisibleLine: Int,
     val lastVisibleLine: Int,
 
     val cursors: List<Cursor>,
     val selections: List<Selection>
+//    val windowCount: Int,
+//    val openFiles: List<String?>?
 )
 
 /**
@@ -93,7 +100,9 @@ data class Selection(
 )
 
 // TODO(pcohen): can we put these directly on the data classes?
-fun cursorFromLogicalPosition(lp: LogicalPosition): Cursor = Cursor(lp.line, lp.column)
+fun cursorFromLogicalPosition(lp: LogicalPosition): Cursor =
+    Cursor(lp.line, lp.column)
+
 fun selectionFromCaretState(lp: CaretState): Selection {
     val start = lp.selectionStart?.let { cursorFromLogicalPosition(it) }
     val end = lp.selectionEnd?.let { cursorFromLogicalPosition(it) }
