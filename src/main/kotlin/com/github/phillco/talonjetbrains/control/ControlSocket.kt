@@ -4,15 +4,18 @@ import com.github.phillco.talonjetbrains.control.Command
 import com.github.phillco.talonjetbrains.control.CommandResponse
 import com.github.phillco.talonjetbrains.control.Response
 import com.github.phillco.talonjetbrains.cursorless.cursorless
+import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.ui.playback.commands.ActionCommand
 import com.jetbrains.rd.util.use
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -41,6 +44,27 @@ val root = Paths.get(System.getProperty("user.home"), ".jb-state/$pid.sock")
     .absolutePathString()
 
 val socketFile = File(root)
+
+/** Runs the action with the given id */
+fun runAction(actionId: String) {
+    val editor = getEditor()
+    if (editor == null) {
+        log.warn("No editor found")
+        return
+    }
+
+    val actionManager = ActionManager.getInstance()
+    val action = actionManager.getAction(actionId)
+    val event = ActionCommand.getInputEvent(actionId)
+
+    actionManager.tryToExecute(
+        action,
+        event,
+        editor.component,
+        null /* place */,
+        true /* now */
+    )
+}
 
 /**
  * Dispatches the input command.
@@ -76,6 +100,12 @@ fun dispatch(command: Command): CommandResponse {
         }
         "cursorless" -> {
             CommandResponse(cursorless(command))
+        }
+        "action" -> {
+            ApplicationManager.getApplication().invokeAndWait {
+                command.args!!.forEach { runAction(it) }
+            }
+            CommandResponse("OK, ran: ${command.args}")
         }
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
