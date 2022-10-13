@@ -140,6 +140,11 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         started = true
     }
 
+    fun editorPath(): String? {
+        val file = FileDocumentManager.getInstance().getFile(editor.document)
+        return file?.path
+    }
+
     /**
      * Returns the list of hat decorations for this editor, if there is a valid one.
      */
@@ -152,8 +157,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                     File(HATS_PATH).readText()
                 )
 
-            val editorPath = FileDocumentManager.getInstance()
-                .getFile(editor.document)!!.path
+            val editorPath = editorPath()
 
             if (!cursorlessTempFiles.containsKey(editorPath)) {
                 return null
@@ -209,7 +213,9 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             }
 
             val logicalPosition = editor.offsetToLogicalPosition(offset)
-            val coordinates = editor.visualPositionToXY(editor.logicalToVisualPosition(logicalPosition))
+            val coordinates = editor.visualPositionToXY(
+                editor.logicalToVisualPosition(logicalPosition)
+            )
 
             g.color = this.colorForName(colorName)
 
@@ -226,7 +232,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     fun doPainting(g: Graphics) {
         val mapping = getHats() ?: return
 
-        log.debug("Redrawing for ${editor.document}...")
+        println("Redrawing for ${editorPath()}...")
         mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
     }
 
