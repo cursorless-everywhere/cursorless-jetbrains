@@ -238,8 +238,27 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
     }
 
+    fun isLibraryFile(): Boolean {
+        val path = editorPath()
+        // TODO(pcohen): hack for now; detect if the module is marked as a library
+        // /Users/phillco/Library/Java/JavaVirtualMachines/corretto-11.0.14.1/Contents/Home/lib/src.zip!/java.desktop/javax/swing/JComponent.java
+        return (path != null) && "node_modules/" in path
+    }
+
+    fun isReadOnly(): Boolean {
+        val path = editorPath()
+        return !editor.document.isWritable || path == null || !Files.isWritable(
+            Path.of(path)
+        ) || isLibraryFile()
+    }
+
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
+
+        if (isReadOnly()) {
+            // NOTE(pcohen): work round bad performance in read only library
+            return
+        }
 
         startWatchingIfNeeded()
 
