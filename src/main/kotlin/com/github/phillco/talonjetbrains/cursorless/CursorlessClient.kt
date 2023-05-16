@@ -20,7 +20,8 @@ import java.io.File
 
 private val log = logger<ControlServer>()
 
-class SerialChangedError : RuntimeException("JetBrains serial changed during execution")
+class SerialChangedError :
+    RuntimeException("JetBrains serial changed during execution")
 
 /**
  * Returns whether the sidecar is ready to run a next Cursorless command, by forcing a fresh
@@ -60,13 +61,13 @@ fun testisSidecarIsReady(): Boolean {
  * `testisSidecarIsReady()` with retries.
  */
 fun ensureSidecarIsReady() {
-    for (i in 0..20) {
+    for (i in 0..3) {
         val result = testisSidecarIsReady()
         log.info("testisSidecarIsReady, try $i: $result")
         if (result) {
             return
         }
-        Thread.sleep(100)
+        Thread.sleep(15)
     }
 
     val error = "Sidecar wasn't ready after N retries"
@@ -187,13 +188,13 @@ fun cursorlessSingle(command: Command): String? {
  * Runs `cursorlessSingle` but automatically retry on `SerialChangedError()`s.
  */
 fun cursorless(command: Command): String? {
-    for (i in 0..20) {
+    for (i in 0..5) {
         try {
             log.info("cursorless try $i")
             return cursorlessSingle(command)
         } catch (e: Exception) {
             log.info("cursorless hit $e, try $i")
-            Thread.sleep(100)
+            Thread.sleep(30)
         }
     }
     throw RuntimeException("")
