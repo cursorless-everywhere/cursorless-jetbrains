@@ -187,12 +187,13 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         }
     }
 
-    fun colorForName(colorName: String): JBColor {
+    fun colorForName(colorName: String): JBColor? {
         val lightColor = this.colors["light"]?.get(colorName)
         val darkColor = this.colors["dark"]?.get(colorName)
 
         if (lightColor == null || darkColor == null) {
-            throw RuntimeException("Missing color for $colorName")
+            println("Missing color for $colorName")
+            return null
         }
 
         return JBColor(
@@ -217,7 +218,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                 editor.logicalToVisualPosition(logicalPosition)
             )
 
-            g.color = this.colorForName(colorName)
+            val color = this.colorForName(colorName) ?: return
+            g.color = color
 
             val size = OVAL_SIZE
             g.fillOval(
