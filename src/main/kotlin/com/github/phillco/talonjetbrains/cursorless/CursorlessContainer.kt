@@ -2,6 +2,9 @@ package com.github.phillco.talonjetbrains.cursorless
 
 import com.github.phillco.talonjetbrains.sync.cursorlessTempFiles
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -76,7 +79,20 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             }.build()
 
         watchThread = Thread {
-            this.watcher.watch()
+            try {
+                this.watcher.watch()
+            } catch (e: UnsatisfiedLinkError) {
+                // NOTE(pcohen): On 2023.1 there seems to be a JNI link error.
+                Notifications.Bus.notify(
+                    Notification(
+                        "talon",
+                        "JNI UnsatisfiedLinkError",
+                        e.message ?: "Unknown JNI error",
+                        NotificationType.ERROR
+                    )
+                )
+                throw e;
+            }
         }
         watchThread.start()
 
