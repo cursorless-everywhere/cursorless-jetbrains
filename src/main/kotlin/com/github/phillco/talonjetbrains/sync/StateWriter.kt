@@ -135,7 +135,7 @@ fun serializeAllEditors(project: Project): List<EditorState> {
 
     val allEditors =
         femx?.windows?.map { window ->
-            val selectedFile = window.selectedFile
+            val selectedFile = window.selectedFile!!
 
             // TODO(pcohen): this doesn't properly support opening the same window
             // across multiple splits
