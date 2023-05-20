@@ -13,7 +13,6 @@ import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.logger
-import io.ktor.utils.io.preventFreeze
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import java.io.File
@@ -33,7 +32,6 @@ fun testisSidecarIsReady(): Boolean {
     var preCommandContents: String = ""
     ApplicationManager.getApplication().invokeAndWait {
         ApplicationManager.getApplication().runWriteAction {
-            getEditor()!!.preventFreeze()
             CommandProcessor.getInstance().executeCommand(
                 getEditor()!!.project,
                 {
