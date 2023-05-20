@@ -7,6 +7,8 @@ import com.github.phillco.talonjetbrains.cursorless.cursorless
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
+import com.intellij.find.FindManager
+import com.intellij.find.FindModel
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -14,8 +16,13 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
+import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.playback.commands.ActionCommand
+import com.intellij.openapi.wm.IdeFocusManager
 import com.jetbrains.rd.util.use
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
@@ -106,6 +113,102 @@ fun dispatch(command: Command): CommandResponse {
                 command.args!!.forEach { runAction(it) }
             }
             CommandResponse("OK, ran: ${command.args}")
+        }
+        "find" -> {
+            val searchTerm = command.args!![0]
+            val direction = command.args[1]
+
+            ApplicationManager.getApplication().invokeAndWait {
+                val e: Editor = getEditor()!!
+                val document =
+                    e.document
+                val selection =
+                    e.selectionModel
+                val project =
+                    ProjectManager.getInstance().openProjects[0]
+                val findManager =
+                    FindManager.getInstance(project)
+                val findModel = FindModel()
+                findModel.stringToFind = searchTerm
+                findModel.isCaseSensitive = false
+                findModel.isRegularExpressions = true
+                findModel.isForward = direction == "next"
+                val result =
+                    findManager.findString(
+                        document.charsSequence,
+                        e.caretModel.offset,
+                        findModel
+                    )
+                if (result.isStringFound) {
+                    if (direction == "next") {
+                        e.caretModel
+                            .moveToOffset(result.endOffset)
+                    } else {
+                        e.caretModel
+                            .moveToOffset(result.startOffset)
+                    }
+                    selection.setSelection(
+                        result.startOffset,
+                        result.endOffset
+                    )
+                    e.scrollingModel
+                        .scrollToCaret(ScrollType.CENTER)
+                    IdeFocusManager.getGlobalInstance()
+                        .requestFocus(e.contentComponent, true)
+                }
+            }
+
+            CommandResponse("OK, ran: ${command.args}")
+        }
+        "insertAtCursors" -> {
+            ApplicationManager.getApplication().invokeAndWait {
+                val editor = getEditor()
+                if (editor == null) {
+                    log.warn("No editor found")
+                    return@invokeAndWait
+                }
+
+                ApplicationManager.getApplication().runWriteAction {
+                    val document = editor.document
+                    val caretModel = editor.caretModel
+                    val caretCount = caretModel.caretCount
+                    val text = command.args!!.joinToString(" ")
+
+                    CommandProcessor.getInstance().executeCommand(
+                        editor.project,
+                        {
+                            for (i in 0 until caretCount) {
+                                val caret = caretModel.allCarets[i]
+                                if (caret.hasSelection()) {
+                                    document.deleteString(
+                                        caret.selectionStart,
+                                        caret.selectionEnd
+                                    )
+                                }
+                                document.insertString(caret.offset, text)
+                                caret.moveToOffset(
+                                    caret.offset + text.length
+                                )
+                            }
+                        },
+                        "Insert",
+                        "insertGroup"
+                    )
+                }
+            }
+            CommandResponse("OK, inserted: ${command.args}")
+        }
+        "content" -> {
+            var resp = ""
+            ApplicationManager.getApplication().invokeAndWait {
+                val editor = getEditor()
+                if (editor == null) {
+                    log.warn("No editor found")
+                    return@invokeAndWait
+                }
+                resp = editor.document.text
+            }
+            CommandResponse(resp)
         }
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
