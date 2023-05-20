@@ -11,7 +11,7 @@ var containers = ArrayList<CursorlessContainer>()
 class TalonEditorFactoryListener : EditorFactoryListener {
 
     init {
-        println("phil: listener scope")
+        println("PHIL: TalonEditorFactoryListener listener scope")
     }
 
     override fun editorCreated(event: EditorFactoryEvent) {
