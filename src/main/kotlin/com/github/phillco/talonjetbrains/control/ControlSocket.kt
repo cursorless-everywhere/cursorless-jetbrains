@@ -19,9 +19,12 @@ import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.playback.commands.ActionCommand
+import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.wm.IdeFocusManager
 import com.jetbrains.rd.util.use
 import kotlinx.serialization.decodeFromString
@@ -83,6 +86,7 @@ fun dispatch(command: Command): CommandResponse {
             val state = serializeOverallState()
             CommandResponse(json.encodeToString(state))
         }
+
         "serializeState" -> {
             var path: Path? = null
             ApplicationManager.getApplication().invokeAndWait {
@@ -90,10 +94,12 @@ fun dispatch(command: Command): CommandResponse {
             }
             CommandResponse("wrote state to $path")
         }
+
         "slow" -> {
             Thread.sleep(5000)
             CommandResponse("finally")
         }
+
         "notify" -> {
             Notifications.Bus.notify(
                 Notification(
@@ -105,15 +111,18 @@ fun dispatch(command: Command): CommandResponse {
             )
             CommandResponse("OK")
         }
+
         "cursorless" -> {
             CommandResponse(cursorless(command))
         }
+
         "action" -> {
             ApplicationManager.getApplication().invokeAndWait {
                 command.args!!.forEach { runAction(it) }
             }
             CommandResponse("OK, ran: ${command.args}")
         }
+
         "find" -> {
             val searchTerm = command.args!![0]
             val direction = command.args[1]
@@ -160,6 +169,56 @@ fun dispatch(command: Command): CommandResponse {
 
             CommandResponse("OK, ran: ${command.args}")
         }
+
+        "openFile" -> {
+            val filePath = command.args!![0]
+            val file = VfsUtil.findFile(Paths.get(filePath.strip()), true)
+
+            // TODO(pcohen): focus it if it's already open
+            ApplicationManager.getApplication().invokeAndWait {
+                FileEditorManager.getInstance(
+                    getEditor()!!.project!!
+                ).openFile(file!!, true)
+
+                if (command.args.size > 1) {
+                    val line = command.args[1].toInt()
+                    val column =
+                        if (command.args.size > 2) command.args[2].toInt() else 0
+                    val e: Editor = getEditor()!!
+                    e.caretModel.removeSecondaryCarets()
+                    e.caretModel.moveToLogicalPosition(
+                        LogicalPosition(
+                            (line - 1).coerceAtLeast(0),
+                            (column - 1).coerceAtLeast(0),
+                        )
+                    )
+                }
+            }
+            CommandResponse("OK, opened: ${filePath}")
+        }
+
+        "goto" -> {
+            var line = command.args!![0].toInt()
+            var column =
+                if (command.args.size > 1) command.args[1].toInt() else 0
+
+            // Both count from 0, so adjust.
+            line = (line - 1).coerceAtLeast(0)
+            column = (column - 1).coerceAtLeast(0)
+
+            val pos = LogicalPosition(line, column)
+            ApplicationManager.getApplication().invokeAndWait {
+                val e: Editor = getEditor()!!
+                e.caretModel.removeSecondaryCarets()
+                e.caretModel.moveToLogicalPosition(pos)
+                e.scrollingModel.scrollToCaret(ScrollType.CENTER)
+                e.selectionModel.removeSelection()
+                IdeFocusManager.getGlobalInstance()
+                    .requestFocus(e.contentComponent, true)
+            }
+            return CommandResponse("OK, moved to: ${pos}")
+        }
+
         "insertAtCursors" -> {
             ApplicationManager.getApplication().invokeAndWait {
                 val editor = getEditor()
@@ -198,6 +257,7 @@ fun dispatch(command: Command): CommandResponse {
             }
             CommandResponse("OK, inserted: ${command.args}")
         }
+
         "content" -> {
             var resp = ""
             ApplicationManager.getApplication().invokeAndWait {
@@ -210,6 +270,7 @@ fun dispatch(command: Command): CommandResponse {
             }
             CommandResponse(resp)
         }
+
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
         }
