@@ -318,14 +318,16 @@ fun createControlSocket() {
 
         // NOTE(pcohen): debugging a strange bug where with certain other plugins in
         // 2021.1 we never get past .start() here (but there's no exception raised)
-        Notifications.Bus.notify(
-            Notification(
-                "talon",
-                "The control socket works!",
-                "This is a test notification",
-                NotificationType.INFORMATION
+        if (File(System.getProperty("user.home") + "/.jetbrains-debug-control-socket").exists()) {
+            Notifications.Bus.notify(
+                Notification(
+                    "talon",
+                    "The control socket works!",
+                    "This is a test notification",
+                    NotificationType.INFORMATION
+                )
             )
-        )
+        }
     } catch (e: Exception) {
         log.info("[Control Socket] ERROR: $e")
         e.printStackTrace()
