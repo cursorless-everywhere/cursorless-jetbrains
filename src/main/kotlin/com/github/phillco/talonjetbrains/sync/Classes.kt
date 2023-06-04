@@ -18,7 +18,10 @@ data class OverallState(
     // TODO(pcohen): deprecate this; caller should just read find the editor with active=True
     val activeEditor: EditorState?,
 
-    val editors: List<EditorState>
+    val editors: List<EditorState>,
+
+    val recentProjects: Map<String, String>
+
 //    val allEditors: List<FileEditorState>?
 )
 

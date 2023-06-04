@@ -9,6 +9,7 @@ import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
 import com.intellij.find.FindManager
 import com.intellij.find.FindModel
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -78,6 +79,8 @@ fun runAction(actionId: String) {
 
 /**
  * Dispatches the input command.
+ *
+ * // TODO(pcohen): we need JSON input
  */
 fun dispatch(command: Command): CommandResponse {
     return when (command.command) {
@@ -271,9 +274,33 @@ fun dispatch(command: Command): CommandResponse {
             CommandResponse(resp)
         }
 
+        "openProject" -> {
+            val projectPath = command.args!![0]
+
+            // See if it's already open.
+            // TODO(pcohen): probably need to do path normalization
+            val openProjects = ProjectManager.getInstance().openProjects
+            for (project in openProjects) {
+                if (project.basePath == projectPath) {
+                    println("Already open, focusing: ${project}")
+                    // NOTE(pcohen): would be nice to be able to not steal focus
+                    ApplicationManager.getApplication().invokeAndWait {
+                        ProjectUtil.focusProjectWindow(project, true)
+                    }
+
+                    return CommandResponse("OK, already open: ${project}")
+                }
+            }
+
+            val project =
+                ProjectManager.getInstance().loadAndOpenProject(projectPath)
+            CommandResponse("OK, opened: ${project}")
+        }
+
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
         }
+
     }
 }
 

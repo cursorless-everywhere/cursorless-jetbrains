@@ -1,6 +1,8 @@
 package com.github.phillco.talonjetbrains.sync
 
 import com.intellij.dvcs.repo.VcsRepositoryManager
+import com.intellij.ide.RecentProjectsManager
+import com.intellij.ide.RecentProjectsManagerBase
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
@@ -52,6 +54,25 @@ var hasShutdown = false
 var cursorlessTempFiles = mutableMapOf<String, Path>()
 
 private val log = logger<OverallState>()
+
+fun recentProjects(): Map<String, String> {
+//    val start = System.currentTimeMillis()
+    val recentProjectsManager = RecentProjectsManager.getInstance()
+
+    val recentProjectsManagerBase =
+        (recentProjectsManager as RecentProjectsManagerBase)
+
+    val map = mutableMapOf<String, String>()
+
+    recentProjectsManagerBase.getRecentPaths().forEach { path ->
+        val name = recentProjectsManagerBase.getProjectName(path)
+        map[name] = path
+    }
+
+//    println("recentProjects took ${System.currentTimeMillis() - start}ms")
+
+    return map
+}
 
 fun getProject(): Project? {
     return IdeFocusManager.findInstance().lastFocusedFrame?.project
@@ -174,7 +195,8 @@ fun serializeOverallState(): OverallState {
         ApplicationInfo.getInstance().fullVersion,
         PluginManagerCore.getPlugin(PluginId.findId("com.github.phillco.talonjetbrains"))?.version,
         editor?.let { serializeEditor(it, true) },
-        project?.let { p -> serializeAllEditors(p) } ?: listOf()
+        project?.let { p -> serializeAllEditors(p) } ?: listOf(),
+        recentProjects()
         // NOTE(pcohen): removed for now; not very useful
 //        allEditors?.map { x -> serializeFileEditor(x) }
     )
