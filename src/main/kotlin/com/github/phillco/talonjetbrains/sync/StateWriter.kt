@@ -14,6 +14,8 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.fileEditor.impl.EditorHistoryManager
+import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
 import kotlinx.serialization.encodeToString
@@ -69,12 +71,15 @@ fun recentProjects(): Map<String, String> {
         map[name] = path
     }
 
+
 //    println("recentProjects took ${System.currentTimeMillis() - start}ms")
 
     return map
 }
 
 fun getProject(): Project? {
+
+
     return IdeFocusManager.findInstance().lastFocusedFrame?.project
 }
 
@@ -96,6 +101,18 @@ fun serializeProject(project: Project): ProjectState {
 
 fun toEditor(fileEditor: FileEditor): Editor =
     (fileEditor as TextEditor).editor
+
+fun openFiles(project: Project): List<String> {
+    val k =
+        (FileEditorManager.getInstance(project) as FileEditorManagerImpl)
+
+    return k.selectionHistory.map { it.first.path }
+}
+
+fun recentFiles(project: Project): List<String> {
+    return EditorHistoryManager.getInstance(project).fileList.map { it.path }
+        .reversed()
+}
 
 fun serializeEditor(editor: Editor, active: Boolean): EditorState {
     val project = editor.project
@@ -141,8 +158,9 @@ fun serializeEditor(editor: Editor, active: Boolean): EditorState {
         editor.xyToLogicalPosition(Point(ve.x, ve.y)).line,
         editor.xyToLogicalPosition(Point(ve.x, ve.y + ve.height)).line,
         cursors,
-        selections
-
+        selections,
+        openFiles(project!!),
+        recentFiles(project!!),
     )
 }
 

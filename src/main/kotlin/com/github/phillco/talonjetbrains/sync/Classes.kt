@@ -38,7 +38,10 @@ data class EditorState(
     val lastVisibleLine: Int,
 
     val cursors: List<Cursor>,
-    val selections: List<Selection>
+    val selections: List<Selection>,
+
+    val openFiles: List<String>,
+    val recentFiles: List<String>,
 //    val windowCount: Int,
 //    val openFiles: List<String?>?
 )
