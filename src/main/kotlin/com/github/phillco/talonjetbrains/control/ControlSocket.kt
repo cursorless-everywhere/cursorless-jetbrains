@@ -14,6 +14,7 @@ import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.ActionManager
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
@@ -25,6 +26,7 @@ import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.playback.commands.ActionCommand
+import com.intellij.openapi.util.ActionCallback
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.wm.IdeFocusManager
 import com.jetbrains.rd.util.use
@@ -57,25 +59,37 @@ val root = Paths.get(System.getProperty("user.home"), ".jb-state/$pid.sock")
 val socketFile = File(root)
 
 /** Runs the action with the given id */
-fun runAction(actionId: String) {
+fun runAction(actionId: String): Pair<AnAction, ActionCallback>? {
     val editor = getEditor()
     if (editor == null) {
         log.warn("No editor found")
-        return
+        return null
     }
 
     val actionManager = ActionManager.getInstance()
     val action = actionManager.getAction(actionId)
+    if (action == null) {
+        log.warn("No action found for $actionId")
+        return null
+    }
+
     val event = ActionCommand.getInputEvent(actionId)
 
-    actionManager.tryToExecute(
+    val result = actionManager.tryToExecute(
         action,
         event,
         editor.component,
         null /* place */,
         true /* now */
     )
+    return Pair(action, result)
 }
+
+//fun stoppedDebugging() {
+//    val k =
+//        ExecutionManager.getInstance(getEditor()!!.project!!) as ExecutionManagerImpl
+////    k.
+//}
 
 /**
  * Dispatches the input command.
@@ -120,10 +134,23 @@ fun dispatch(command: Command): CommandResponse {
         }
 
         "action" -> {
+            var result = ""
             ApplicationManager.getApplication().invokeAndWait {
-                command.args!!.forEach { runAction(it) }
+                command.args!!.forEach {
+                    val r = runAction(it)
+                    if (r != null) {
+                        val (action, callback) = r
+                        if (callback.isRejected) {
+                            result += "${action} -> REJECTED\n"
+                        } else {
+                            result += "${action} -> OK\n"
+                        }
+//                        result += "${action} -> done=${callback.isDone} processed=${callback.isProcessed} rejected=${callback.isRejected}\n"
+                    }
+//                    ExecutionManager.getInstance(getEditor()!!.project!!).getRunningProcesses()[0].ter
+                }
             }
-            CommandResponse("OK, ran: ${command.args}")
+            CommandResponse("OK, ran: ${result}")
         }
 
         "find" -> {

@@ -59,22 +59,29 @@ private val log = logger<OverallState>()
 
 fun recentProjects(): Map<String, String> {
 //    val start = System.currentTimeMillis()
-    val recentProjectsManager = RecentProjectsManager.getInstance()
+    try {
+        val recentProjectsManager = RecentProjectsManager.getInstance()
 
-    val recentProjectsManagerBase =
-        (recentProjectsManager as RecentProjectsManagerBase)
+        val recentProjectsManagerBase =
+            (recentProjectsManager as RecentProjectsManagerBase)
 
-    val map = mutableMapOf<String, String>()
+        val map = mutableMapOf<String, String>()
 
-    recentProjectsManagerBase.getRecentPaths().forEach { path ->
-        val name = recentProjectsManagerBase.getProjectName(path)
-        map[name] = path
-    }
+        recentProjectsManagerBase.getRecentPaths().forEach { path ->
+            val name = recentProjectsManagerBase.getProjectName(path)
+            map[name] = path
+        }
 
 
 //    println("recentProjects took ${System.currentTimeMillis() - start}ms")
 
-    return map
+        return map
+    } catch (e: Exception) {
+        //2023-06-04 15:56:39,205 [  10091] SEVERE - #c.i.o.p.i.ProjectManagerImpl - Method 'com.intellij.ide.RecentProjectsManager com.intellij.ide.RecentProjectsManager.getInstance()' must be InterfaceMethodref constant
+        //java.lang.IncompatibleClassChangeError: Method 'com.intellij.ide.RecentProjectsManager com.intellij.ide.RecentProjectsManager.getInstance()' must be InterfaceMethodref constant
+        log.error("Error getting recent projects", e)
+        return mapOf()
+    }
 }
 
 fun getProject(): Project? {
@@ -160,7 +167,7 @@ fun serializeEditor(editor: Editor, active: Boolean): EditorState {
         cursors,
         selections,
         openFiles(project!!),
-        recentFiles(project!!),
+        recentFiles(project),
     )
 }
 
@@ -174,11 +181,12 @@ fun serializeAllEditors(project: Project): List<EditorState> {
 
     val allEditors =
         femx?.windows?.map { window ->
-            val selectedFile = window.selectedFile!!
+            val selectedFile = window.selectedFile
+
 
             // TODO(pcohen): this doesn't properly support opening the same window
             // across multiple splits
-            val editors = femx.getEditors(selectedFile)
+            val editors = femx.getEditors(selectedFile!!)
             toEditor(editors[0])
         }
 
