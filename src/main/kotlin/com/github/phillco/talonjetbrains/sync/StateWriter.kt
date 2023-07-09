@@ -15,7 +15,6 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.fileEditor.impl.EditorHistoryManager
-import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
 import kotlinx.serialization.encodeToString
@@ -110,11 +109,7 @@ fun toEditor(fileEditor: FileEditor): Editor =
     (fileEditor as TextEditor).editor
 
 fun openFiles(project: Project): List<String> {
-    val k =
-        (FileEditorManager.getInstance(project) as FileEditorManagerImpl)
-
-//    return emptyList()
-    return k.selectionHistory.map { it.first.path }
+    return FileEditorManager.getInstance(project).openFiles.map { it.path }
 }
 
 fun recentFiles(project: Project): List<String> {
