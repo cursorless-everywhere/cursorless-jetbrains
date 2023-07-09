@@ -38,9 +38,11 @@ class TalonApplicationService : Disposable {
 
         // NOTE(pcohen): terrible workaround
         // https://github.com/cursorless-everywhere/cursorless-jetbrains/issues/16
+        // NOTE(pcohen): that seems to need to be *distinct* from the current application path
+        // (ie can't use /Applications/IntelliJ IDEA 2023.1.app from /Applications/IntelliJ IDEA 2023.1.app)
         System.setProperty(
             "jna.boot.library.path",
-            "/Applications/IntelliJ IDEA 2023.1.app/Contents/lib/jna/aarch64"
+            "/Applications/IntelliJ IDEA.app/Contents/lib/jna/aarch64"
         )
 
 //        System.setProperty("jna.debug_load.jna", "true");
