@@ -69,6 +69,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                     this.assignColors()
                 } else if (event.path() == Paths.get(HATS_PATH)) {
                     log.debug("Hats updated ($event); re rendering...")
+//                    println("Hats updated ($event); re rendering...")
                     this.assignColors()
                     localOffsets.clear()
                     this.invalidate()
@@ -82,6 +83,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             try {
                 this.watcher.watch()
             } catch (e: UnsatisfiedLinkError) {
+
+                println("PH: |${e}|")
                 // NOTE(pcohen): On 2023.1 there seems to be a JNI link error.
                 Notifications.Bus.notify(
                     Notification(
@@ -250,7 +253,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     fun doPainting(g: Graphics) {
         val mapping = getHats() ?: return
 
-        println("Redrawing for ${editorPath()}...")
+//        println("Redrawing for ${editorPath()}...")
         mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
     }
 

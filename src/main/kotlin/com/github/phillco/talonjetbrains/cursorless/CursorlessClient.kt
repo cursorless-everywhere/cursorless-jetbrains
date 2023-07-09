@@ -35,10 +35,10 @@ fun testisSidecarIsReady(): Boolean {
             CommandProcessor.getInstance().executeCommand(
                 getEditor()!!.project,
                 {
-                    log.info("Pre-Cursorless command contents:\n===")
+//                    println("Pre-Cursorless command contents:\n===")
                     preCommandContents = getEditor()?.document!!.text
-                    log.info(preCommandContents)
-                    log.info("\n===")
+//                    println(preCommandContents)
+//                    println("\n===")
                 },
                 "Insert",
                 "insertGroup"
@@ -61,8 +61,9 @@ fun testisSidecarIsReady(): Boolean {
 fun ensureSidecarIsReady() {
     for (i in 0..3) {
         val result = testisSidecarIsReady()
-        log.info("testisSidecarIsReady, try $i: $result")
+        println("testisSidecarIsReady, try $i: $result")
         if (result) {
+            println("Sidecar is ready")
             return
         }
         Thread.sleep(15)
@@ -92,7 +93,7 @@ fun cursorlessSingle(command: Command): String? {
     val startingSerial = serial
     ensureSidecarIsReady()
 
-    log.info("running with serial: $startingSerial")
+    println("running with serial: $startingSerial")
     val vcCommand = VSCodeCommand(
         "cursorless",
         null,
@@ -100,7 +101,9 @@ fun cursorlessSingle(command: Command): String? {
         command.args!![0]
     )
 
+    println("running command: $vcCommand")
     val resultString: String? = sendCommand(vcCommand)
+    println("result: $resultString")
     val response = format.decodeFromString<CursorlessResponse>(
         resultString!!
     )
@@ -124,8 +127,8 @@ fun cursorlessSingle(command: Command): String? {
     ApplicationManager.getApplication().invokeAndWait {
         val newContents = File(response.newState!!.contentsPath!!).readText()
 
-        log.info("pre-command serial: $startingSerial")
-        log.info("post-command serial: $serial")
+        println("pre-command serial: $startingSerial")
+        println("post-command serial: $serial")
 
         if (startingSerial != serial) {
             Notifications.Bus.notify(
@@ -148,9 +151,9 @@ fun cursorlessSingle(command: Command): String? {
                 CommandProcessor.getInstance().executeCommand(
                     getEditor()!!.project,
                     {
-                        log.info("New contents:\n===")
-                        log.info(newContents)
-                        log.info("\n===")
+                        println("New contents:\n===")
+                        println(newContents)
+                        println("\n===")
                         getEditor()?.document?.setText(newContents)
                         getEditor()?.caretModel?.caretsAndSelections =
                             response.newState.cursors.map { it.toCaretState() }
@@ -188,12 +191,13 @@ fun cursorlessSingle(command: Command): String? {
 fun cursorless(command: Command): String? {
     for (i in 0..5) {
         try {
-            log.info("cursorless try $i")
+            println("cursorless try $i")
             return cursorlessSingle(command)
         } catch (e: Exception) {
-            log.info("cursorless hit $e, try $i")
+            println("cursorless hit $e, try $i")
+            println("cursorless hit $e, try $i")
             Thread.sleep(30)
         }
     }
-    throw RuntimeException("")
+    throw RuntimeException("cursorless failed after N retries")
 }

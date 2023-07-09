@@ -7,7 +7,6 @@ import kotlinx.serialization.json.Json
 import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
 import java.io.File
-import java.io.IOException
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
@@ -22,20 +21,37 @@ data class VSCodeCommand(
 val SOCKET_TIMEOUT_MS = 2000
 
 fun sendCommand(command: VSCodeCommand): String? {
-    val root = Paths.get(System.getProperty("user.home"), ".cursorless/vscode-socket").absolutePathString()
+    println("Sending to VS Code: $command....")
+    val root =
+        Paths.get(System.getProperty("user.home"), ".cursorless/vscode-socket")
+            .absolutePathString()
 
     val socketFile = File(root)
     val sock = AFUNIXSocket.newInstance()
-    val address = AFUNIXSocketAddress(socketFile)
-    sock.connect(address)
-    var resp: String? = null
-    try {
-        sock.soTimeout = SOCKET_TIMEOUT_MS
-        sock.inputStream.bufferedReader().use { inputStream ->
-            sock.outputStream.bufferedWriter().use { outputStream ->
-                val format = Json { isLenient = true }
 
-                outputStream.write(format.encodeToString(command))
+    println("Connecting to socket file: $socketFile")
+    val address = AFUNIXSocketAddress.of(socketFile)
+    println("Connecting to socket address: $address")
+    sock.connect(address)
+    println("Connected to socket file: $socketFile")
+    sock.soTimeout = SOCKET_TIMEOUT_MS
+
+    try {
+
+
+        var resp: String?
+
+
+
+        sock.outputStream.bufferedWriter().use { outputStream ->
+            val format = Json { isLenient = true }
+
+            val encoded = format.encodeToString(command)
+            println("Encoded: $encoded")
+            outputStream.write(encoded)
+            outputStream.flush()
+            sock.inputStream.bufferedReader().use { inputStream ->
+
                 println("Sent to VS Code")
 
                 outputStream.flush()
@@ -47,8 +63,10 @@ fun sendCommand(command: VSCodeCommand): String? {
             }
         }
 //        }
-    } catch (e: IOException) {
+    } catch (e: Exception) {
+        println("Error: $e")
         e.printStackTrace()
         return "Error: $e"
+
     }
 }

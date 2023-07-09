@@ -113,6 +113,7 @@ fun openFiles(project: Project): List<String> {
     val k =
         (FileEditorManager.getInstance(project) as FileEditorManagerImpl)
 
+//    return emptyList()
     return k.selectionHistory.map { it.first.path }
 }
 

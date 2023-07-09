@@ -1,5 +1,7 @@
 package com.github.phillco.talonjetbrains.services
 
+import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
+import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
 import com.github.phillco.talonjetbrains.listeners.TalonDocumentListener
 import com.github.phillco.talonjetbrains.listeners.TalonFocusChangeListener
@@ -23,6 +25,38 @@ class TalonApplicationService : Disposable {
 
     init {
         println("application service init")
+
+        val r = sendCommand(VSCodeCommand("ping"))
+
+        // NOTE(pcohen): terrible workaround
+        // https://github.com/cursorless-everywhere/cursorless-jetbrains/issues/16
+        System.setProperty(
+            "jna.boot.library.path",
+            "/Applications/IntelliJ IDEA 2023.1.app/Contents/lib/jna/aarch64"
+        )
+
+//        System.setProperty("jna.debug_load.jna", "true");
+//        System.setProperty("jna.debug_load", "true");
+//
+//        var watcher = DirectoryWatcher.builder()
+//            .path(Path.of(CURSORLESS_FOLDER))
+//            .logger(NOPLogger.NOP_LOGGER)
+//            .listener { event: DirectoryChangeEvent ->
+//
+//            }.build()
+//
+//        var watchThread = Thread {
+//            try {
+//                watcher.watch()
+//            } catch (e: UnsatisfiedLinkError) {
+//                e.printStackTrace()
+//
+//                println("PH: |${e}|")
+//                // NOTE(pcohen): On 2023.1 there seems to be a JNI link error.
+//                System.exit(1)
+//            }
+//        }
+//        watchThread.start()
 
         // Listening for window changes is necessary, since we don't seem to get them from Talon.
 

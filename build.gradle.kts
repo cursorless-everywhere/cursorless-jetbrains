@@ -9,7 +9,7 @@ plugins {
     // Kotlin support
     id("org.jetbrains.kotlin.jvm") version "1.7.10"
     // Gradle IntelliJ Plugin
-    id("org.jetbrains.intellij") version "1.13.3"
+    id("org.jetbrains.intellij") version "1.14.2"
     // Gradle Changelog Plugin
     id("org.jetbrains.changelog") version "1.3.1"
     // Gradle Qodana Plugin
@@ -23,12 +23,16 @@ dependencies {
     // NOTE(pcohen): intellij 2022.1+ comes with 2.3.2, so we cannot use much newer version
     // as the APIs change.
     // 2.3.3 is the first version with macOS arm64 support, which does seem to work.
-    implementation("com.kohlschutter.junixsocket:junixsocket-core:2.3.3")
-    implementation("com.kohlschutter.junixsocket:junixsocket-server:2.3.3")
+    implementation("com.kohlschutter.junixsocket:junixsocket-core:2.5.0")
+    implementation("com.kohlschutter.junixsocket:junixsocket-server:2.5.0")
     // https://mvnrepository.com/artifact/org.slf4j/slf4j-api
 //    implementation("org.slf4j:slf4j-api:1.7.36")
 
-    implementation("io.methvin:directory-watcher:0.15.1") {
+    // https://mvnrepository.com/artifact/net.java.dev.jna/jna
+//    implementation("net.java.dev.jna:jna:5.13.0")
+
+
+    implementation("io.methvin:directory-watcher:0.18.0") {
         exclude("group", "org.slf4j")
     }
 }
@@ -47,6 +51,7 @@ intellij {
     pluginName.set(properties("pluginName"))
     version.set(properties("platformVersion"))
     type.set(properties("platformType"))
+
 
     // Plugin Dependencies. Uses `platformPlugins` property from the gradle.properties file.
     plugins.set(
@@ -122,9 +127,18 @@ tasks {
         )
     }
 
+//    runIde {
+//        ideDir.set(file("/Applications/IntelliJ IDEA 2022.3.app/Contents"))
+//    }
+
     // Configure UI tests plugin
     // Read more: https://github.com/JetBrains/intellij-ui-test-robot
     runIdeForUiTests {
+//        ideDir.set(file("/Users/hsz/Applications/IntelliJ IDEA Ultimate.app/Contents"))
+        systemProperty(
+            "jna.boot.library.path",
+            "/Applications/IntelliJ IDEA 2023.1.app/Contents/lib/jna/aarch64"
+        )
         systemProperty("robot-server.port", "8082")
         systemProperty("ide.mac.message.dialogs.as.sheets", "false")
         systemProperty("jb.privacy.policy.text", "<!--999.999-->")

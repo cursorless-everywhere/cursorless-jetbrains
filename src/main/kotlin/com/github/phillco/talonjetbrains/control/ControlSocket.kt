@@ -130,6 +130,7 @@ fun dispatch(command: Command): CommandResponse {
         }
 
         "cursorless" -> {
+            println("cursorless command: ${command.args}")
             CommandResponse(cursorless(command))
         }
 
@@ -352,7 +353,11 @@ fun parseInput(inputString: String): String {
             "[Control Socket] Received command: |$request|"
         )
 
+        println("dispatching command: $request")
+
         val commandResponse = dispatch(request)
+
+        println("command response ${request} : $commandResponse")
 
         val response = Response(
             ProcessHandle.current().pid(),
