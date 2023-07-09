@@ -225,6 +225,7 @@ fun dispatch(command: Command): CommandResponse {
                             (column - 1).coerceAtLeast(0),
                         )
                     )
+                    e.scrollingModel.scrollToCaret(ScrollType.CENTER)
                 }
             }
             CommandResponse("OK, opened: ${filePath}")
