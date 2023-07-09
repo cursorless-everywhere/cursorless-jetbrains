@@ -33,13 +33,15 @@ import com.jetbrains.rd.util.use
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.newsclub.net.unix.AFUNIXServerSocket
+import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
-import org.newsclub.net.unix.server.AFUNIXSocketServer
+import org.newsclub.net.unix.server.SocketServer
 import java.io.File
-import java.net.Socket
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
+
 
 // ================================================================================
 // An implementation of a Unix file socket command server for JetBrains,
@@ -384,21 +386,24 @@ fun parseInput(inputString: String): String {
     }
 }
 
-/**
- * The control server class itself.
- */
+
 class ControlServer :
-    AFUNIXSocketServer(
-        AFUNIXSocketAddress(socketFile)
+    SocketServer<AFUNIXSocketAddress, AFUNIXSocket, AFUNIXServerSocket>(
+        AFUNIXSocketAddress.of(socketFile)
     ) {
 
-    override fun onListenException(e: java.lang.Exception) {
-        e.printStackTrace()
+//    constructor() : super() {
+//
+//    }
+
+    override fun newServerSocket(): AFUNIXServerSocket {
+        val server = AFUNIXServerSocket.newInstance()
+        server.bind(AFUNIXSocketAddress.of(socketFile))
+        return server
     }
 
-    override fun doServeSocket(socket: Socket?) {
-        log.info("[Control Socket] Connected: $socket")
-        val sock = socket!!
+    override fun doServeSocket(sock: AFUNIXSocket) {
+        println("[Control Socket] Connected: $sock")
 
         val bufferSize: Int = sock.getReceiveBufferSize()
         val buffer = ByteArray(bufferSize)
@@ -412,45 +417,71 @@ class ControlServer :
                 while (`is`.read(buffer).also { read = it } != -1) {
                     val inputString = String(buffer, 0, read)
 
+                    print("RECEIVED: $inputString")
+
                     val response = parseInput(inputString)
                     os.write(response.encodeToByteArray())
 
-                    log.info(
+                    println(
                         "[Control Socket] Wrote response: |$response|"
                     )
                 }
             }
         }
+//
+//
+// //                println("[Control Socket] Reading: $sock")
+// //                val inputText: String = sock.inputStream.bufferedReader().use(BufferedReader::readText)
+//
+//        try {
+//            var imp: String = "null"
+//            sock.inputStream.reader().use { inputStream ->
+//                try {
+//                    println("[Control Socket] Reading")
+//                    imp = inputStream.readText()
+//                    println("[Control Socket] Read: $imp")
+//                } catch (e: Exception) {
+//                    println("[Control Socket] INNER ERROR READING: $e")
+//                    e.printStackTrace()
+//                }
+//            }
+//
+//
+//            println("[Control Socket] Time to write")
+//
+//            sock.outputStream.writer().use { writer ->
+//                writer.write("hi\n")
+//                writer.flush()
+//            }
+//
+//            println("[Control Socket] Done writing")
+//
+//
+// //            sock.outputStream.bufferedWriter().use { outputStream ->
+// //                outputStream.write("hi\n")
+// //                try {
+// //                    parseInput(imp, outputStream)
+// //                    outputStream.close()
+// //                } catch (e: Exception) {
+// //                    println("[Control Socket] INNER ERROR WRITING: $e")
+// //                    outputStream.write("${e}")
+// //                    e.printStackTrace()
+// //                }
+// //
+// //            }
+//        } catch (e: Exception) {
+//            println("[Control Socket] ERROR: $e")
+//            e.printStackTrace()
+//        }
+//
+//        println("[Control Socket] Done Serving")
+//        sock.close()
     }
 }
 
 fun createControlSocket() {
-    log.info("[Control Socket] Creating control socket for $pid $socketFile...")
+    println("[Control Socket] Creating control socket...")
 
-    try {
-        socketFile.createNewFile()
-
-        val server = ControlServer()
-        log.info("[Control Socket] Initialized! Starting...")
-
-        server.start()
-        log.info("[Control Socket] started ${server.isReady} ${server.isRunning}")
-
-        // NOTE(pcohen): debugging a strange bug where with certain other plugins in
-        // 2021.1 we never get past .start() here (but there's no exception raised)
-        if (File(System.getProperty("user.home") + "/.jetbrains-debug-control-socket").exists()) {
-            Notifications.Bus.notify(
-                Notification(
-                    "talon",
-                    "The control socket works!",
-                    "This is a test notification",
-                    NotificationType.INFORMATION
-                )
-            )
-        }
-    } catch (e: Exception) {
-        log.info("[Control Socket] ERROR: $e")
-        e.printStackTrace()
-        System.exit(1)
-    }
+    val server = ControlServer()
+    server.start()
 }

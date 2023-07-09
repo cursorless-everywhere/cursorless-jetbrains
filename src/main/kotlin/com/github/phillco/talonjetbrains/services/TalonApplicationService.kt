@@ -1,7 +1,5 @@
 package com.github.phillco.talonjetbrains.services
 
-import com.github.phillco.talonjetbrains.cursorless.VSCodeCommand
-import com.github.phillco.talonjetbrains.cursorless.sendCommand
 import com.github.phillco.talonjetbrains.listeners.TalonCaretListener
 import com.github.phillco.talonjetbrains.listeners.TalonDocumentListener
 import com.github.phillco.talonjetbrains.listeners.TalonFocusChangeListener
@@ -26,7 +24,17 @@ class TalonApplicationService : Disposable {
     init {
         println("application service init")
 
-        val r = sendCommand(VSCodeCommand("ping"))
+        // NOTE(pcohen): this is a useful way to test the socket connection
+        // (doing so from the control socket leads to weird stack traces
+        // if it's a linking issue)
+//        try {
+//            val r = sendCommand(VSCodeCommand("ping"))
+//            println("PH: result |${r}|")
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            println("PH: |${e}|")
+//            throw e
+//        }
 
         // NOTE(pcohen): terrible workaround
         // https://github.com/cursorless-everywhere/cursorless-jetbrains/issues/16
