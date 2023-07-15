@@ -24,14 +24,9 @@ val DEFAULT_COLORS = mapOf(
     )
 )
 
-var CURSORLESS_FOLDER =
-    System.getProperty("user.home") + "/.cursorless/"
+var HATS_FILENAME = "vscode-hats.json"
 
-var HATS_PATH =
-    System.getProperty("user.home") + "/.cursorless/vscode-hats.json"
-
-var COLORS_PATH =
-    System.getProperty("user.home") + "/.cursorless/colors.json"
+var COLORS_FILENAME = "colors.json"
 
 // Format of the vscode-hats.json file.
 typealias HatsFormat = HashMap<String, ArrayList<CursorlessRange>>

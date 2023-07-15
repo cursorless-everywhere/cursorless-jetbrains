@@ -1,5 +1,6 @@
 package com.github.phillco.talonjetbrains.cursorless
 
+import com.github.phillco.talonjetbrains.sync.cursorlessRoot
 import com.jetbrains.rd.util.use
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -23,7 +24,7 @@ val SOCKET_TIMEOUT_MS = 2000
 fun sendCommand(command: VSCodeCommand): String? {
     println("Sending to VS Code: $command....")
     val root =
-        Paths.get(System.getProperty("user.home"), ".cursorless/vscode-socket")
+        Paths.get(cursorlessRoot().toString(), "vscode-socket")
             .absolutePathString()
 
     val socketFile = File(root)

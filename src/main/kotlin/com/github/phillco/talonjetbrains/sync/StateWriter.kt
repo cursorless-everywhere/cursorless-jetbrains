@@ -230,6 +230,14 @@ fun markEditorChange(source: String) {
     serializeEditorStateToFile()
 }
 
+fun cursorlessPrefix() = "debug"
+
+/**
+ * Returns the root directory for Cursorless state.
+ */
+fun cursorlessRoot() =
+    Paths.get(System.getProperty("user.home"), ".cursorless", cursorlessPrefix())
+
 /**
  * Returns whether we are the "active Cursorless editor" application and should show hats / receive commands / etc.
  * This is to allow multiple applications to support Cursorless.
@@ -296,8 +304,7 @@ fun serializeEditorStateToFile(): Path? {
 
         // Also write the cursorless state
         if (isActiveCursorlessEditor()) {
-            val cursorlessRoot =
-                Paths.get(System.getProperty("user.home"), ".cursorless")
+            val cursorlessRoot = cursorlessRoot()
             Files.writeString(cursorlessRoot.resolve("editor-state.json"), json)
         }
 

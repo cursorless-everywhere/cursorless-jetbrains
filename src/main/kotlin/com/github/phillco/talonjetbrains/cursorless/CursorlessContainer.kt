@@ -1,5 +1,6 @@
 package com.github.phillco.talonjetbrains.cursorless
 
+import com.github.phillco.talonjetbrains.sync.cursorlessRoot
 import com.github.phillco.talonjetbrains.sync.cursorlessTempFiles
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
 import com.intellij.notification.Notification
@@ -7,10 +8,12 @@ import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.ui.JBColor
 import com.intellij.util.io.readText
 import groovy.json.JsonException
+import groovy.util.logging.Log
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
 import kotlinx.serialization.decodeFromString
@@ -24,6 +27,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
 import javax.swing.JComponent
+import kotlin.io.path.exists
 
 /**
  * Renders the Cursorless hats within the editor.
@@ -61,13 +65,13 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         // when there are changes on the JetBrains side, but the new hats come from the sidecar
         // slightly after that, so we need to know when that happens and trigger a re-render.
         this.watcher = DirectoryWatcher.builder()
-            .path(Path.of(CURSORLESS_FOLDER))
+            .path(cursorlessRoot())
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
-                if (event.path() == Paths.get(COLORS_PATH)) {
+                if (event.path() == colorsPath()) {
                     log.debug("Colors updated ($event); re rendering...")
                     this.assignColors()
-                } else if (event.path() == Paths.get(HATS_PATH)) {
+                } else if (event.path() == hatsPath()) {
                     log.debug("Hats updated ($event); re rendering...")
 //                    println("Hats updated ($event); re rendering...")
                     this.assignColors()
@@ -103,6 +107,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         log.info("Cursorless container initialized for editor $editor!")
     }
 
+    fun hatsPath() : Path {
+        return Paths.get(cursorlessRoot().toString(), HATS_FILENAME)
+    }
+
+    fun colorsPath() : Path {
+        return Paths.get(cursorlessRoot().toString(), COLORS_FILENAME)
+    }
+
     /**
      * Assigns our colors by taking the default colors and overriding them with
      * the values (if any) in `COLORS_PATH`.
@@ -117,13 +129,13 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             }
         }
 
-        if (Files.exists(Path.of(COLORS_PATH))) {
+        if (Files.exists(Path.of(COLORS_FILENAME))) {
             val format = Json { isLenient = true }
 
             // TODO(pcohen): anywhere where we parse JSON, show appropriate errors to the user
             // if the parse fails
             val map = format.decodeFromString<ColorsFormat>(
-                Path.of(COLORS_PATH).readText()
+                Path.of(COLORS_FILENAME).readText()
             )
 
             map.forEach { colorScheme, colorMap ->
@@ -173,7 +185,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
             val map =
                 format.decodeFromString<HashMap<String, HashMap<String, ArrayList<CursorlessRange>>>>(
-                    File(HATS_PATH).readText()
+                    File(hatsPath().toString()).readText()
                 )
 
             val editorPath = editorPath()
@@ -223,7 +235,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
     fun renderForColor(g: Graphics, mapping: HatsFormat, colorName: String) {
         mapping[colorName]!!.forEach { range: CursorlessRange ->
-            var offset = range.startOffset!!
+            var offset = range.startOffset(editor)
 
             localOffsets.forEach { pair ->
                 if (offset >= pair.first) {
@@ -232,7 +244,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                 }
             }
 
-            val logicalPosition = editor.offsetToLogicalPosition(offset)
+            val logicalPosition = range.start?.toLogicalPosition()!!
+
             val coordinates = editor.visualPositionToXY(
                 editor.logicalToVisualPosition(logicalPosition)
             )
@@ -281,8 +294,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
         startWatchingIfNeeded()
 
-        if (!File(HATS_PATH).exists()) {
-            log.info("Hatsfile doesn't exist; not withdrawing...")
+        if (!hatsPath().exists()) {
+            log.info("Hatsfile ${hatsPath()} doesn't exist; not withdrawing...")
             return
         }
 
