@@ -1,5 +1,7 @@
 package com.github.phillco.talonjetbrains.sync
 
+import com.github.phillco.talonjetbrains.util.findContainingFunction
+import com.github.phillco.talonjetbrains.util.selectElementAtCaret
 import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.ide.RecentProjectsManager
 import com.intellij.ide.RecentProjectsManagerBase
@@ -25,6 +27,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.bouncycastle.asn1.x500.style.RFC4519Style.l
 import java.awt.Point
 import java.io.File
 import java.nio.file.Files
@@ -128,9 +131,9 @@ fun navigationHistory(project: Project) {
     // NOTE(pcohen): forward locations is not exposed
     // we could still do pop last based on the list
     // and then for pop forward iterate until we change files
-    val l = (IdeDocumentHistory.getInstance(project))
-    val l2 = (l as IdeDocumentHistoryImpl)
-    println(l.backPlaces)
+//    val psiE = selectElementAtCaret(getEditor()!!)
+//    val containingFunction = findContainingFunction(psiE!!)
+//    println("$psiE, $containingFunction")
 }
 
 fun serializeEditor(editor: Editor, active: Boolean): EditorState {

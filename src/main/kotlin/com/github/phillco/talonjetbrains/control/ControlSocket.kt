@@ -8,6 +8,7 @@ import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.getProject
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
+import com.github.phillco.talonjetbrains.util.containingFunctionAtCaret
 import com.intellij.find.FindManager
 import com.intellij.find.FindModel
 import com.intellij.ide.impl.ProjectUtil
@@ -21,6 +22,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.command.CommandProcessor
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ScrollType
@@ -31,10 +33,12 @@ import com.intellij.openapi.ui.playback.commands.ActionCommand
 import com.intellij.openapi.util.ActionCallback
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.wm.IdeFocusManager
+import com.intellij.psi.PsiElement
 import com.jetbrains.rd.util.use
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.bouncycastle.oer.its.ieee1609dot2dot1.AdditionalParams.original
 import org.newsclub.net.unix.AFUNIXServerSocket
 import org.newsclub.net.unix.AFUNIXSocket
 import org.newsclub.net.unix.AFUNIXSocketAddress
@@ -330,8 +334,10 @@ fun dispatch(command: Command): CommandResponse {
             CommandResponse("OK, opened: ${project}")
         }
 
-        "navigateFileBack" -> navigate(false)
-        "navigateFileForward" -> navigate(true)
+        "navigateFileBack" -> navigate(false, NavigationType.FILE)
+        "navigateFileForward" -> navigate(true, NavigationType.FILE)
+        "navigateFunctionBack" -> navigate(false, NavigationType.FUNCTION)
+        "navigateFunctionForward" -> navigate(true, NavigationType.FUNCTION)
 
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
@@ -340,40 +346,63 @@ fun dispatch(command: Command): CommandResponse {
     }
 }
 
+enum class NavigationType {
+    FILE {
+        override fun current(): Document {
+            return getEditor()!!.document
+        }
+    },
+    FUNCTION {
+        override fun current(): PsiElement? {
+            return containingFunctionAtCaret(getEditor()!!)
+        }
+    };
+
+    abstract fun current(): Any?
+}
+
+
 /**
  * Navigates through the file hierarchy until a different file is found.
  *
  * Mimics the behavior of the Visual Studio Code actions workbench.action.openPreviousRecentlyUsedEditor
  * and workbench.action.openNextRecentlyUsedEditor.
  */
-private fun navigate(forward: Boolean): CommandResponse {
+private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
     val project = getProject()
     val historyManager = IdeDocumentHistory.getInstance(project)
 
-    val originalPath = getEditor()!!.document
-    var currentPath = getEditor()!!.document
+    var current: Any? = null
+    var original: Any? = null
 
     var steps = 0
     ApplicationManager.getApplication().invokeAndWait {
+        println("Navigating $forward")
+        ApplicationManager.getApplication().runReadAction {
+            original = type.current()
+            current = type.current()
 
-        while (currentPath == originalPath && historyManager.isBackAvailable && steps < 100) {
-            if (forward) {
-                historyManager.forward()
-            } else {
-                historyManager.back()
+            while (current == original && (if (forward) historyManager.isForwardAvailable else historyManager.isBackAvailable) && steps < 100) {
+                println("Current: $current")
+
+                if (forward) {
+                    historyManager.forward()
+                } else {
+                    historyManager.back()
+                }
+                current = type.current()
+                steps++
             }
-            currentPath = getEditor()!!.document
-            steps++
         }
 
     }
 
     val verb = if (forward) "forward" else "back"
 
-    return if (currentPath == originalPath) {
+    return if (current == original) {
         CommandResponse("Failed; no different file found to go $verb to")
     } else {
-        CommandResponse("OK, navigated $verb $steps steps to $currentPath")
+        CommandResponse("OK, navigated $verb $steps steps to $current")
     }
 }
 
