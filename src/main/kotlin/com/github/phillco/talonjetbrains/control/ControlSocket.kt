@@ -378,6 +378,8 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
     var original: Any? = null
 
     var steps = 0
+    var success = false
+
     ApplicationManager.getApplication().invokeAndWait {
         println("Navigating $verb by $type")
         ApplicationManager.getApplication().runReadAction {
@@ -388,14 +390,6 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
             while ((if (forward) historyManager.isForwardAvailable else historyManager.isBackAvailable) && steps < 100) {
                 println("Current: $current, steps: $steps")
 
-                // NOTE(pcohen): we want to check if the current isn't null in the case of navigating
-                // across files they don't support functions (such as Talon files).
-                // We want to skip over those in case there are history entries later that do support them.
-                if (current != original && current != null) {
-                    println("Found different; breaking")
-                    break
-                }
-
                 if (forward) {
                     historyManager.forward()
                 } else {
@@ -403,19 +397,40 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
                 }
                 current = type.current()
                 steps++
+
+                // NOTE(pcohen): we want to check if the current isn't null in the case of navigating
+                // across files they don't support functions (such as Talon files).
+                // We want to skip over those in case there are history entries later that do support them.
+                success = current != original && current != null
+                if (success) {
+                    println("Found different; breaking")
+                    break
+                }
             }
 
             println("Navigated $verb $steps steps to $current, changed: ${current != original}")
+
+            if (!success) {
+                // revert the navigation
+                repeat(steps) {
+                    if (forward) {
+                        historyManager.back()
+                    } else {
+                        historyManager.forward()
+                    }
+                }
+            }
         }
 
     }
 
     val changed = current != original
 
-    if (!changed || current == null) {
-        var explanation = "Navigation stack didn't include a different ${
-            type.toString().lowercase()
-        }"
+    if (!success) {
+        var explanation =
+            "Navigation stack ($steps intrudes) didn't include a different ${
+                type.toString().lowercase()
+            }"
         if (current == null) {
             // NOTE(pcohen): this is just to explain why you might end up on a Talon file
             // when navigating by function
@@ -426,9 +441,9 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
                 "talon",
                 "Unable to navigate ${
                     type.toString().lowercase()
-                }/$verb ($steps steps)",
+                }/$verb",
                 explanation,
-                NotificationType.ERROR
+                NotificationType.WARNING
             )
         )
     }
