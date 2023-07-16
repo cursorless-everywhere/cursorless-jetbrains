@@ -404,12 +404,34 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
                 current = type.current()
                 steps++
             }
+
+            println("Navigated $verb $steps steps to $current, changed: ${current != original}")
         }
 
     }
 
     val changed = current != original
-    println("Navigated $verb $steps steps to $current, changed: $changed")
+
+    if (!changed || current == null) {
+        var explanation = "Navigation stack didn't include a different ${
+            type.toString().lowercase()
+        }"
+        if (current == null) {
+            // NOTE(pcohen): this is just to explain why you might end up on a Talon file
+            // when navigating by function
+            explanation += " (last entry was also null)"
+        }
+        Notifications.Bus.notify(
+            Notification(
+                "talon",
+                "Unable to navigate ${
+                    type.toString().lowercase()
+                }/$verb ($steps steps)",
+                explanation,
+                NotificationType.ERROR
+            )
+        )
+    }
 
     return if (!changed) {
         CommandResponse("Failed; no different file found to go $verb to")
