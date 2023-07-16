@@ -5,13 +5,15 @@ import com.github.phillco.talonjetbrains.listeners.TalonDocumentListener
 import com.github.phillco.talonjetbrains.listeners.TalonFocusChangeListener
 import com.github.phillco.talonjetbrains.listeners.TalonSelectionListener
 import com.github.phillco.talonjetbrains.listeners.TalonVisibleAreaListener
-import com.github.phillco.talonjetbrains.sync.cursorlessRoot
+import com.github.phillco.talonjetbrains.sync.cursorlessRootPath
 import com.github.phillco.talonjetbrains.sync.unlinkStateFile
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.ex.EditorEventMulticasterEx
-import com.intellij.ui.plaf.beg.BegResources.m
 
 class TalonApplicationService : Disposable {
 
@@ -47,7 +49,16 @@ class TalonApplicationService : Disposable {
             "/Applications/IntelliJ IDEA.app/Contents/lib/jna/aarch64"
         )
 
-        println("Cursorless root: ${cursorlessRoot()}")
+        val root = cursorlessRootPath()
+        println("Cursorless root: |${root}|")
+        Notifications.Bus.notify(
+            Notification(
+                "talon",
+                "Cursorless root",
+                "$root",
+                NotificationType.INFORMATION
+            )
+        )
 
 //        System.setProperty("jna.debug_load.jna", "true");
 //        System.setProperty("jna.debug_load", "true");

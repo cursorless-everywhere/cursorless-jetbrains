@@ -1,19 +1,18 @@
 package com.github.phillco.talonjetbrains.cursorless
 
-import com.github.phillco.talonjetbrains.sync.cursorlessRoot
+import com.github.phillco.talonjetbrains.sync.cursorlessRootPath
 import com.github.phillco.talonjetbrains.sync.cursorlessTempFiles
+import com.github.phillco.talonjetbrains.sync.forceRefreshCursorlessRoot
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.editor.Editor
-import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.ui.JBColor
 import com.intellij.util.io.readText
 import groovy.json.JsonException
-import groovy.util.logging.Log
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
 import kotlinx.serialization.decodeFromString
@@ -58,6 +57,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
         this.assignColors()
 
+        val rootPath = cursorlessRootPath()
+
         // We create a watcher for the Cursorless hats file, as well as the colors configuration
         // file.
         //
@@ -65,7 +66,7 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         // when there are changes on the JetBrains side, but the new hats come from the sidecar
         // slightly after that, so we need to know when that happens and trigger a re-render.
         this.watcher = DirectoryWatcher.builder()
-            .path(cursorlessRoot())
+            .path(rootPath)
             .logger(NOPLogger.NOP_LOGGER)
             .listener { event: DirectoryChangeEvent ->
                 if (event.path() == colorsPath()) {
@@ -78,6 +79,9 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
                     localOffsets.clear()
                     this.invalidate()
                     this.repaint()
+//                } else if (event.path().fileName.toString() == "root") {
+//                    println("Root updated ($event); reevaluating...")
+//                    forceRefreshCursorlessRoot()
                 } else {
                     log.debug("Other event ($event); ignoring...")
                 }
@@ -107,12 +111,12 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         log.info("Cursorless container initialized for editor $editor!")
     }
 
-    fun hatsPath() : Path {
-        return Paths.get(cursorlessRoot().toString(), HATS_FILENAME)
+    fun hatsPath(): Path {
+        return Paths.get(cursorlessRootPath().toString(), HATS_FILENAME)
     }
 
-    fun colorsPath() : Path {
-        return Paths.get(cursorlessRoot().toString(), COLORS_FILENAME)
+    fun colorsPath(): Path {
+        return Paths.get(cursorlessRootPath().toString(), COLORS_FILENAME)
     }
 
     /**

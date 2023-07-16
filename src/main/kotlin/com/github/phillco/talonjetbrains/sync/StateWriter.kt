@@ -4,6 +4,9 @@ import com.intellij.dvcs.repo.VcsRepositoryManager
 import com.intellij.ide.RecentProjectsManager
 import com.intellij.ide.RecentProjectsManagerBase
 import com.intellij.ide.plugins.PluginManagerCore
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.application.ApplicationNamesInfo
 import com.intellij.openapi.diagnostic.logger
@@ -230,13 +233,43 @@ fun markEditorChange(source: String) {
     serializeEditorStateToFile()
 }
 
-fun cursorlessPrefix() = "debug"
+var cursorlessRootCache: Path? = null
+
+fun cursorlessRootDefault() = Paths.get(
+    System.getProperty("user.home"),
+    ".cursorless-new",
+)
+
+fun cursorlessRoot(): Path {
+    if (cursorlessRootCache != null) {
+        return Paths.get(cursorlessRootCache.toString())
+    }
+
+    val versionPath = Paths.get(
+        System.getProperty("user.home"),
+        ".cursorless",
+        "root"
+    )
+    if (Files.exists(versionPath)) {
+        val content = Files.readString(versionPath)
+            .replace("~", System.getProperty("user.home")).strip()
+
+        val r = Paths.get(content)
+        cursorlessRootCache = r
+        return r
+    }
+
+    val r = cursorlessRootDefault()
+    cursorlessRootCache = r
+    return r
+}
 
 /**
  * Returns the root directory for Cursorless state.
  */
-fun cursorlessRoot() =
-    Paths.get(System.getProperty("user.home"), ".cursorless", cursorlessPrefix())
+fun cursorlessRootPath(): Path {
+    return Paths.get(cursorlessRoot().absolutePathString())
+}
 
 /**
  * Returns whether we are the "active Cursorless editor" application and should show hats / receive commands / etc.
@@ -304,7 +337,8 @@ fun serializeEditorStateToFile(): Path? {
 
         // Also write the cursorless state
         if (isActiveCursorlessEditor()) {
-            val cursorlessRoot = cursorlessRoot()
+            val cursorlessRoot = cursorlessRootPath()
+            Files.createDirectories(cursorlessRoot)
             Files.writeString(cursorlessRoot.resolve("editor-state.json"), json)
         }
 
