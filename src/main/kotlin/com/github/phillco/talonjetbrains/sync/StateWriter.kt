@@ -17,7 +17,10 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
+import com.intellij.openapi.fileEditor.ex.IdeDocumentHistory
 import com.intellij.openapi.fileEditor.impl.EditorHistoryManager
+import com.intellij.openapi.fileEditor.impl.IdeDocumentHistoryImpl
+import com.intellij.openapi.fileEditor.impl.IdeDocumentHistoryImpl.RecentPlacesListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.IdeFocusManager
 import kotlinx.serialization.encodeToString
@@ -101,6 +104,7 @@ fun getFileEditorManager(): FileEditorManager? {
 }
 
 fun serializeProject(project: Project): ProjectState {
+    navigationHistory(project)
     val repos =
         VcsRepositoryManager.getInstance(project).repositories.map { repo ->
             RepoState(repo.root.path, repo.vcs.name.lowercase())
@@ -118,6 +122,15 @@ fun openFiles(project: Project): List<String> {
 fun recentFiles(project: Project): List<String> {
     return EditorHistoryManager.getInstance(project).fileList.map { it.path }
         .reversed()
+}
+
+fun navigationHistory(project: Project) {
+    // NOTE(pcohen): forward locations is not exposed
+    // we could still do pop last based on the list
+    // and then for pop forward iterate until we change files
+    val l = (IdeDocumentHistory.getInstance(project))
+    val l2 = (l as IdeDocumentHistoryImpl)
+    println(l.backPlaces)
 }
 
 fun serializeEditor(editor: Editor, active: Boolean): EditorState {

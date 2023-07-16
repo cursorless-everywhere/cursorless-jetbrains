@@ -5,6 +5,7 @@ import com.github.phillco.talonjetbrains.control.CommandResponse
 import com.github.phillco.talonjetbrains.control.Response
 import com.github.phillco.talonjetbrains.cursorless.cursorless
 import com.github.phillco.talonjetbrains.sync.getEditor
+import com.github.phillco.talonjetbrains.sync.getProject
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
 import com.intellij.find.FindManager
@@ -24,6 +25,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.ScrollType
 import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.ex.IdeDocumentHistory
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.playback.commands.ActionCommand
 import com.intellij.openapi.util.ActionCallback
@@ -328,10 +330,50 @@ fun dispatch(command: Command): CommandResponse {
             CommandResponse("OK, opened: ${project}")
         }
 
+        "navigateFileBack" -> navigate(false)
+        "navigateFileForward" -> navigate(true)
+
         else -> {
             throw RuntimeException("invalid command: ${command.command}")
         }
 
+    }
+}
+
+/**
+ * Navigates through the file hierarchy until a different file is found.
+ *
+ * Mimics the behavior of the Visual Studio Code actions workbench.action.openPreviousRecentlyUsedEditor
+ * and workbench.action.openNextRecentlyUsedEditor.
+ */
+private fun navigate(forward: Boolean): CommandResponse {
+    val project = getProject()
+    val historyManager = IdeDocumentHistory.getInstance(project)
+
+    val originalPath = getEditor()!!.document
+    var currentPath = getEditor()!!.document
+
+    var steps = 0
+    ApplicationManager.getApplication().invokeAndWait {
+
+        while (currentPath == originalPath && historyManager.isBackAvailable && steps < 100) {
+            if (forward) {
+                historyManager.forward()
+            } else {
+                historyManager.back()
+            }
+            currentPath = getEditor()!!.document
+            steps++
+        }
+
+    }
+
+    val verb = if (forward) "forward" else "back"
+
+    return if (currentPath == originalPath) {
+        CommandResponse("Failed; no different file found to go $verb to")
+    } else {
+        CommandResponse("OK, navigated $verb $steps steps to $currentPath")
     }
 }
 
