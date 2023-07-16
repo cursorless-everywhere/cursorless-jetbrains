@@ -372,18 +372,29 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
     val project = getProject()
     val historyManager = IdeDocumentHistory.getInstance(project)
 
+    val verb = if (forward) "forward" else "back"
+
     var current: Any? = null
     var original: Any? = null
 
     var steps = 0
     ApplicationManager.getApplication().invokeAndWait {
-        println("Navigating $forward")
+        println("Navigating $verb by $type")
         ApplicationManager.getApplication().runReadAction {
             original = type.current()
             current = type.current()
 
-            while (current == original && (if (forward) historyManager.isForwardAvailable else historyManager.isBackAvailable) && steps < 100) {
-                println("Current: $current")
+            println("Original: $original")
+            while ((if (forward) historyManager.isForwardAvailable else historyManager.isBackAvailable) && steps < 100) {
+                println("Current: $current, steps: $steps")
+
+                // NOTE(pcohen): we want to check if the current isn't null in the case of navigating
+                // across files they don't support functions (such as Talon files).
+                // We want to skip over those in case there are history entries later that do support them.
+                if (current != original && current != null) {
+                    println("Found different; breaking")
+                    break
+                }
 
                 if (forward) {
                     historyManager.forward()
@@ -397,9 +408,10 @@ private fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
 
     }
 
-    val verb = if (forward) "forward" else "back"
+    val changed = current != original
+    println("Navigated $verb $steps steps to $current, changed: $changed")
 
-    return if (current == original) {
+    return if (!changed) {
         CommandResponse("Failed; no different file found to go $verb to")
     } else {
         CommandResponse("OK, navigated $verb $steps steps to $current")
