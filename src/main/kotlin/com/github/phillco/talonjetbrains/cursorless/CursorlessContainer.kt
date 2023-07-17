@@ -19,13 +19,16 @@ import kotlinx.serialization.json.Json
 import org.slf4j.helpers.NOPLogger
 import java.awt.Color
 import java.awt.Graphics
+import java.awt.image.BufferedImage
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.concurrent.ConcurrentLinkedQueue
+import javax.imageio.ImageIO
 import javax.swing.JComponent
 import kotlin.io.path.exists
+
 
 /**
  * Renders the Cursorless hats within the editor.
@@ -49,6 +52,8 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
     private var colors = DEFAULT_COLORS
 
     private val log = logger<CursorlessContainer>()
+
+    private val shapeImageCache = mutableMapOf<String, BufferedImage>()
 
     init {
         this.parent.add(this)
@@ -116,6 +121,43 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
 
     fun colorsPath(): Path {
         return Paths.get(cursorlessRootPath().toString(), COLORS_FILENAME)
+    }
+
+    fun shapeImage(name: String): BufferedImage {
+        val imagePath = SHAPES_DIRECTORY.resolve("$name.png").toUri()
+        return ImageIO.read(File(imagePath))
+    }
+
+    fun coloredShapeImage(
+        fullKeyName: String,
+        shapeName: String,
+        colorName: String
+    ): BufferedImage? {
+        if (shapeImageCache.containsKey(fullKeyName)) {
+            return shapeImageCache[fullKeyName]
+        }
+
+        println("generating image for $fullKeyName")
+        val shape = shapeImage(shapeName)
+        val color = colorForName(colorName) ?: return null
+
+        // TODO(pcohen): don't hard code dark mode
+        val coloredImage = colorImageAndPreserveAlpha(shape, color.darkVariant)
+        shapeImageCache[fullKeyName] = coloredImage
+        return coloredImage
+    }
+
+    private fun colorImageAndPreserveAlpha(
+        img: BufferedImage,
+        c: Color
+    ): BufferedImage {
+        val raster = img.raster
+        val pixel = intArrayOf(c.red, c.green, c.blue)
+        for (x in 0 until raster.width) for (y in 0 until raster.height) for (b in pixel.indices) raster.setSample(
+            x, y, b,
+            pixel[b]
+        )
+        return img
     }
 
     /**
@@ -236,8 +278,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         )
     }
 
-    fun renderForColor(g: Graphics, mapping: HatsFormat, colorName: String) {
-        mapping[colorName]!!.forEach { range: CursorlessRange ->
+    fun renderForColor(
+        g: Graphics,
+        mapping: HatsFormat,
+        fullKeyName: String,
+        colorName: String,
+        shapeName: String?
+    ) {
+        mapping[fullKeyName]!!.forEach { range: CursorlessRange ->
             var offset = range.startOffset(editor)
 
             localOffsets.forEach { pair ->
@@ -256,13 +304,25 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
             val color = this.colorForName(colorName) ?: return
             g.color = color
 
-            val size = OVAL_SIZE
-            g.fillOval(
-                coordinates.x + OVAL_SIZE,
-                coordinates.y - size / 2,
-                size,
-                size
-            )
+            if (shapeName != null) {
+                val size = SHAPE_SIZE
+                val image = coloredShapeImage(fullKeyName, shapeName, colorName)
+                g.drawImage(
+                    image,
+                    coordinates.x,
+                    coordinates.y - SHAPE_SIZE / 2 + 1,
+                    size, size,
+                    null
+                )
+            } else {
+                val size = OVAL_SIZE
+                g.fillOval(
+                    coordinates.x + OVAL_SIZE,
+                    coordinates.y - size / 2,
+                    size,
+                    size
+                )
+            }
         }
     }
 
@@ -270,7 +330,22 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         val mapping = getHats() ?: return
 
 //        println("Redrawing for ${editorPath()}...")
-        mapping.keys.forEach { color -> renderForColor(g, mapping, color) }
+        mapping.keys.forEach { fullName ->
+            run {
+                var shape: String? = null
+                val color: String
+
+                if (fullName.indexOf("-") > 0) {
+                    val parts = fullName.split("-")
+                    shape = parts[1]
+                    color = parts[0]
+                } else {
+                    color = fullName
+                }
+
+                renderForColor(g, mapping, fullName, color, shape)
+            }
+        }
     }
 
     fun isLibraryFile(): Boolean {
