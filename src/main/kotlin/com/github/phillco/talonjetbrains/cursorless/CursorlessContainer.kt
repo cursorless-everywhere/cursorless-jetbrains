@@ -2,7 +2,6 @@ package com.github.phillco.talonjetbrains.cursorless
 
 import com.github.phillco.talonjetbrains.sync.cursorlessRootPath
 import com.github.phillco.talonjetbrains.sync.cursorlessTempFiles
-import com.github.phillco.talonjetbrains.sync.forceRefreshCursorlessRoot
 import com.github.phillco.talonjetbrains.sync.isActiveCursorlessEditor
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
