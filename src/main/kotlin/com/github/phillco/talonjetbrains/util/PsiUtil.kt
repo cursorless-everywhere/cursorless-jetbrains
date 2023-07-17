@@ -11,6 +11,7 @@ val methodTypes = listOf(
     "FUNCTION_DECLARATION",
     "FUNCTION_EXPRESSION",
     "Py:FUNCTION_DECLARATION",
+    "FUN", // Kotlin
 )
 
 fun selectElementAtCaret(editor: Editor): PsiElement? {
