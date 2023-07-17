@@ -3,7 +3,9 @@ package com.github.phillco.talonjetbrains.talon
 import com.github.phillco.talonjetbrains.control.CommandResponse
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.getProject
+import com.github.phillco.talonjetbrains.util.caretLanguage
 import com.github.phillco.talonjetbrains.util.containingFunctionAtCaret
+import com.intellij.lang.Language
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.notification.Notifications
@@ -21,6 +23,11 @@ enum class NavigationType {
     FUNCTION {
         override fun current(): PsiElement? {
             return containingFunctionAtCaret(getEditor()!!)
+        }
+    },
+    LANGUAGE {
+        override fun current(): Language? {
+            return caretLanguage(getEditor()!!)
         }
     };
 
@@ -93,7 +100,7 @@ fun navigate(forward: Boolean, type: NavigationType): CommandResponse {
 
     if (!success) {
         var explanation =
-            "Navigation stack ($steps intrudes) didn't include a different ${
+            "Navigation stack (checked $steps entries) didn't include a different ${
                 type.toString().lowercase()
             }"
         if (current == null) {

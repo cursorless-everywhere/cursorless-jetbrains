@@ -328,6 +328,22 @@ fun dispatch(command: Command): CommandResponse {
             CommandResponse("OK, opened: ${project}")
         }
 
+        "navigateHistory" -> {
+            val direction = command.args!![0]
+            val navType = command.args[1]
+            val navTypeObj = when (navType) {
+                "file" -> NavigationType.FILE
+                "function" -> NavigationType.FUNCTION
+                "language" -> NavigationType.LANGUAGE
+                else -> throw RuntimeException("invalid nav type: ${navType}")
+            }
+            if (direction != "forward" && direction != "back") {
+                throw RuntimeException("invalid direction: ${direction}")
+            }
+            navigate(direction == "forward", navTypeObj)
+            CommandResponse("OK, navigated ${direction} by ${navType}")
+        }
+
         "navigateFileBack" -> navigate(false, NavigationType.FILE)
         "navigateFileForward" -> navigate(true, NavigationType.FILE)
         "navigateFunctionBack" -> navigate(false, NavigationType.FUNCTION)

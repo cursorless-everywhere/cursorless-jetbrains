@@ -54,3 +54,10 @@ fun containingFunctionAtCaret(editor: Editor): PsiElement? {
     val elementAtCaret = selectElementAtCaret(editor)
     return elementAtCaret?.let { findContainingFunction(it) }
 }
+
+fun caretLanguage(editor: Editor): Language? {
+    val psiFile =
+        PsiDocumentManager.getInstance(editor.project!!)
+            .getPsiFile(editor.document)
+    return psiFile?.language
+}
