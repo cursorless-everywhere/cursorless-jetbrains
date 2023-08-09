@@ -115,6 +115,14 @@ class CursorlessContainer(val editor: Editor) : JComponent() {
         log.info("Cursorless container initialized for editor $editor!")
     }
 
+    fun remove() {
+        this.parent.remove(this)
+        this.parent.invalidate()
+        this.parent.repaint()
+        this.watcher.close()
+        this.watchThread.interrupt()
+    }
+
     fun hatsPath(): Path {
         return Paths.get(cursorlessRootPath().toString(), HATS_FILENAME)
     }

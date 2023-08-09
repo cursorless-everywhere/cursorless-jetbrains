@@ -6,7 +6,8 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.event.EditorFactoryEvent
 import com.intellij.openapi.editor.event.EditorFactoryListener
 
-var containers = ArrayList<CursorlessContainer>()
+var editorToContainer =
+    HashMap<com.intellij.openapi.editor.Editor, CursorlessContainer>()
 
 class TalonEditorFactoryListener : EditorFactoryListener {
 
@@ -20,13 +21,25 @@ class TalonEditorFactoryListener : EditorFactoryListener {
         val applicationService = service<TalonApplicationService>()
         applicationService.editorCreated(event.editor)
 
-        containers += CursorlessContainer(event.editor)
+        addCursorlessContainerToEditor(event.editor)
     }
 
     override fun editorReleased(event: EditorFactoryEvent) {
         println("phil: editor released")
         super.editorReleased(event)
+
+        removeCursorlessContainerFromEditor(event.editor)
     }
 }
 
-fun getCursorlessContainers() = containers
+fun addCursorlessContainerToEditor(editor: com.intellij.openapi.editor.Editor) {
+    val container = CursorlessContainer(editor)
+    editorToContainer[editor] = container
+}
+
+fun removeCursorlessContainerFromEditor(editor: com.intellij.openapi.editor.Editor) {
+    val container = editorToContainer[editor] ?: return
+    container.remove()
+}
+
+fun getCursorlessContainers() = editorToContainer.values

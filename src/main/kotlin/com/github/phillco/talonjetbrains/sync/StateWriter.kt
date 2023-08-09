@@ -21,6 +21,7 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.fileEditor.ex.FileEditorManagerEx
 import com.intellij.openapi.fileEditor.ex.IdeDocumentHistory
 import com.intellij.openapi.fileEditor.impl.EditorHistoryManager
+import com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl
 import com.intellij.openapi.fileEditor.impl.IdeDocumentHistoryImpl
 import com.intellij.openapi.fileEditor.impl.IdeDocumentHistoryImpl.RecentPlacesListener
 import com.intellij.openapi.project.Project
@@ -128,6 +129,13 @@ fun recentFiles(project: Project): List<String> {
 }
 
 fun navigationHistory(project: Project) {
+    val k = FileEditorManager.getInstance(project)
+    val k2 = k as FileEditorManagerImpl
+
+    val p = k2.getSelectionHistory()
+    println(p)
+
+//    com.intellij.ide.actions.Switcher.SwitcherPanel
     // NOTE(pcohen): forward locations is not exposed
     // we could still do pop last based on the list
     // and then for pop forward iterate until we change files
@@ -251,7 +259,7 @@ fun markEditorChange(source: String) {
 
 var cursorlessRootCache: Path? = null
 
-fun cursorlessRootDefault() = Paths.get(
+private fun cursorlessRootDefault() = Paths.get(
     System.getProperty("user.home"),
     ".cursorless-new",
 )
@@ -284,7 +292,20 @@ fun cursorlessRoot(): Path {
  * Returns the root directory for Cursorless state.
  */
 fun cursorlessRootPath(): Path {
-    return Paths.get(cursorlessRoot().absolutePathString())
+    // TODO(pcohen): is there better way to detect this?
+    val isDebugging =
+        System.getProperty("idea.plugin.in.sandbox.mode")
+
+    // NOTE(pcohen): automatically switched to the debug subfolder
+    // (created by debugging the extension in VS Code) when debugging
+    // this plugin, to support incompatible changes.
+    //
+    // TODO(pcohen): if this folder doesn't exist, don't use it, for ease of running
+    // without the Visual Studio Code in debug mode
+    return Paths.get(
+        cursorlessRoot().absolutePathString(),
+//        if (isDebugging == "true") "debug" else ""
+    )
 }
 
 /**

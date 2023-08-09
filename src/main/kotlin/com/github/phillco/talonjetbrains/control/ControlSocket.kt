@@ -4,6 +4,8 @@ import com.github.phillco.talonjetbrains.control.Command
 import com.github.phillco.talonjetbrains.control.CommandResponse
 import com.github.phillco.talonjetbrains.control.Response
 import com.github.phillco.talonjetbrains.cursorless.cursorless
+import com.github.phillco.talonjetbrains.listeners.addCursorlessContainerToEditor
+import com.github.phillco.talonjetbrains.listeners.removeCursorlessContainerFromEditor
 import com.github.phillco.talonjetbrains.sync.getEditor
 import com.github.phillco.talonjetbrains.sync.serializeEditorStateToFile
 import com.github.phillco.talonjetbrains.sync.serializeOverallState
@@ -303,6 +305,32 @@ fun dispatch(command: Command): CommandResponse {
                 resp = editor.document.text
             }
             CommandResponse(resp)
+        }
+
+        "removeCursorlessContainer" -> {
+            ApplicationManager.getApplication().invokeAndWait {
+                val editor = getEditor()
+                removeCursorlessContainerFromEditor(editor!!)
+            }
+            CommandResponse("OK, removed")
+        }
+
+        "addCursorlessContainer" -> {
+            ApplicationManager.getApplication().invokeAndWait {
+                val editor = getEditor()
+                addCursorlessContainerToEditor(editor!!)
+            }
+            CommandResponse("OK, added")
+        }
+
+        "rebindCursorlessContainer" -> {
+            ApplicationManager.getApplication().invokeAndWait {
+                val editor = getEditor()
+
+                removeCursorlessContainerFromEditor(editor!!)
+                addCursorlessContainerToEditor(editor)
+            }
+            CommandResponse("OK, rebinded")
         }
 
         "openProject" -> {
