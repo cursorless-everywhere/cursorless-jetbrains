@@ -51,14 +51,14 @@ class TalonApplicationService : Disposable {
 
         val root = cursorlessRootPath()
         println("Cursorless root: |${root}|")
-        Notifications.Bus.notify(
-            Notification(
-                "talon",
-                "Cursorless root",
-                "$root",
-                NotificationType.INFORMATION
-            )
-        )
+//        Notifications.Bus.notify(
+//            Notification(
+//                "talon",
+//                "Cursorless root",
+//                "$root",
+//                NotificationType.INFORMATION
+//            )
+//        )
 
 //        System.setProperty("jna.debug_load.jna", "true");
 //        System.setProperty("jna.debug_load", "true");
