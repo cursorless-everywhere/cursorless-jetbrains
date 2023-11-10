@@ -129,11 +129,11 @@ fun recentFiles(project: Project): List<String> {
 }
 
 fun navigationHistory(project: Project) {
-    val k = FileEditorManager.getInstance(project)
-    val k2 = k as FileEditorManagerImpl
-
-    val p = k2.getSelectionHistory()
-    println(p)
+//    val k = FileEditorManager.getInstance(project)
+//    val k2 = k as FileEditorManagerImpl
+//
+//    val p = k2.getSelectionHistory()
+//    println(p)
 
 //    com.intellij.ide.actions.Switcher.SwitcherPanel
     // NOTE(pcohen): forward locations is not exposed
@@ -304,7 +304,7 @@ fun cursorlessRootPath(): Path {
     // without the Visual Studio Code in debug mode
     return Paths.get(
         cursorlessRoot().absolutePathString(),
-//        if (isDebugging == "true") "debug" else ""
+        if (isDebugging == "true") "debug" else ""
     )
 }
 
@@ -334,6 +334,7 @@ fun stateFilePath(): Path {
 }
 
 fun serializeEditorStateToFile(): Path? {
+    val start = System.nanoTime();
     try {
         val root = Paths.get(System.getProperty("user.home"), ".jb-state")
         val path = stateFilePath()
@@ -385,6 +386,12 @@ fun serializeEditorStateToFile(): Path? {
         e.printStackTrace()
 
         return null
+    } finally {
+        val delta = System.nanoTime() - start
+        val ms = delta / 1000000.0
+        if (ms >= 0) {
+            println("serializeEditorStateToFile took $ms ms")
+        }
     }
 }
 
