@@ -209,17 +209,22 @@ fun dispatch(command: Command): CommandResponse {
             val filePath = command.args!![0]
             val file = VfsUtil.findFile(Paths.get(filePath.strip()), true)
 
-            // TODO(pcohen): focus it if it's already open
             ApplicationManager.getApplication().invokeAndWait {
-                FileEditorManager.getInstance(
+                val fileEditorManager = FileEditorManager.getInstance(
                     getEditor()!!.project!!
-                ).openFile(file!!, true)
+                )
+                // openFile returns the editors for the opened file
+                val editors = fileEditorManager.openFile(file!!, true)
 
                 if (command.args.size > 1) {
                     val line = command.args[1].toInt()
                     val column =
                         if (command.args.size > 2) command.args[2].toInt() else 0
-                    val e: Editor = getEditor()!!
+
+                    // Use the editor from the opened file, not getEditor() which may return old selection
+                    val textEditor = editors.filterIsInstance<com.intellij.openapi.fileEditor.TextEditor>().firstOrNull()
+                    val e: Editor = textEditor?.editor ?: return@invokeAndWait
+
                     e.caretModel.removeSecondaryCarets()
                     e.caretModel.moveToLogicalPosition(
                         LogicalPosition(
